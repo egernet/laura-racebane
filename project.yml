@@ -27,3 +27,17 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
+
+  RacebaneTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RacebaneTests
+    dependencies:
+      - target: Racebane
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.laura.RacebaneTests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic

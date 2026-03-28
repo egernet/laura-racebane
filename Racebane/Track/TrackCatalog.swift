@@ -1,6 +1,8 @@
 import Foundation
 
-/// Alle tilgængelige baner
+/// Alle tilgængelige baner bygget af Carrera-style stykker.
+/// Standard kurve = 45° → 4 stykker = 180° sving.
+/// Alle baner er geometrisk verificeret til at lukke.
 struct TrackCatalog {
 
     static let allTracks: [TrackDefinition] = [
@@ -10,73 +12,79 @@ struct TrackCatalog {
         laurasLoop
     ]
 
-    /// Begynder Oval - let, brede sving
+    /// Begynder Oval - simpel oval
+    /// 4 kurver (180°) + lige + 4 kurver (180°) + lige = 360°
     static let beginnerOval = TrackDefinition(
         name: "Begynder Oval",
-        segments: [
-            .straight(length: 8.0),
-            .curve(angle: .pi, radius: 3.0),
-            .straight(length: 8.0),
-            .curve(angle: .pi, radius: 3.0)
+        pieces: [
+            .straightLong,
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
+            .straightLong,
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
         ]
     )
 
-    /// Otte-tal - kryds i midten, medium sværhedsgrad
+    /// Otte-tal - to cirkler der mødes
+    /// 8x venstre (360°) + 8x højre (-360°) = 0°
     static let figurEight = TrackDefinition(
         name: "Otte-tal",
-        segments: [
-            .straight(length: 4.0),
-            .curve(angle: .pi * 1.1, radius: 2.5),
-            .straight(length: 3.0),
-            .curve(angle: -.pi * 1.1, radius: 2.5),
-            .straight(length: 4.0),
-            .curve(angle: .pi * 1.1, radius: 2.5),
-            .straight(length: 3.0),
-            .curve(angle: -.pi * 1.1, radius: 2.5)
+        pieces: [
+            // Øverste cirkel
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,
+            // Nederste cirkel
+            .curveRight, .curveRight, .curveRight, .curveRight,
+            .curveRight, .curveRight, .curveRight, .curveRight,
         ]
     )
 
-    /// Grand Prix - hairpins, chicaner, svær
+    /// Grand Prix - rektangulær bane
+    /// 4 hjørner á 2 kurver (90°) = 360°
+    /// Modstående sider har identiske lige stykker
     static let grandPrix = TrackDefinition(
         name: "Grand Prix",
-        segments: [
-            .straight(length: 10.0),
-            .curve(angle: .pi / 2, radius: 2.0),       // Skarpt sving 1
-            .straight(length: 3.0),
-            .curve(angle: .pi / 2, radius: 2.0),       // Sving 2
-            .straight(length: 6.0),
-            .curve(angle: .pi / 4, radius: 3.0),       // Let kurve
-            .curve(angle: -.pi / 4, radius: 3.0),      // Chicane del 1
-            .curve(angle: .pi / 4, radius: 3.0),       // Chicane del 2
-            .straight(length: 4.0),
-            .curve(angle: .pi * 0.75, radius: 1.5),    // Hairpin!
-            .straight(length: 5.0),
-            .curve(angle: .pi / 2, radius: 2.5),       // Bredt sving
-            .straight(length: 3.0),
-            .curve(angle: .pi / 3, radius: 2.0),
-            .straight(length: 4.0),
-            .curve(angle: .pi / 3 + 0.02, radius: 2.5) // Afsluttende sving
+        pieces: [
+            // Side 1 (lang)
+            .straightLong, .straightLong, .straight,
+            // Hjørne 1
+            .curveLeft, .curveLeft,                          // 90°
+            // Side 2 (kort)
+            .straight, .straight,
+            // Hjørne 2
+            .curveLeft, .curveLeft,                          // 90°
+            // Side 3 (lang - matcher side 1)
+            .straight, .straightLong, .straightLong,
+            // Hjørne 3
+            .curveLeft, .curveLeft,                          // 90°
+            // Side 4 (kort - matcher side 2)
+            .straight, .straight,
+            // Hjørne 4
+            .curveLeft, .curveLeft,                          // 90°
         ]
     )
 
-    /// Lauras Løkke - sjov hjerteformet bane
+    /// Lauras Løkke - rektangel med brede og stramme sving
+    /// Brede kurver på MODSTÅENDE hjørner (1,3) og stramme på (2,4)
+    /// → radierne ophæver hinanden og banen lukker
     static let laurasLoop = TrackDefinition(
         name: "Lauras Løkke",
-        segments: [
-            // Højre halvdel af hjertet
-            .straight(length: 3.0),
-            .curve(angle: .pi * 0.8, radius: 2.5),
-            .curve(angle: -.pi * 0.3, radius: 4.0),
-            .straight(length: 2.0),
-            .curve(angle: .pi * 0.5, radius: 1.5),
-            // Spidsen
-            .curve(angle: .pi * 0.5, radius: 1.5),
-            .straight(length: 2.0),
-            .curve(angle: -.pi * 0.3, radius: 4.0),
-            .curve(angle: .pi * 0.8, radius: 2.5),
-            .straight(length: 3.0),
-            // Lukning
-            .curve(angle: .pi * 0.2, radius: 3.0)
+        pieces: [
+            // Side 1
+            .straightLong, .straight,
+            // Hjørne 1 (bredt)
+            .wideCurveLeft, .wideCurveLeft,              // 90°
+            // Side 2
+            .straight, .straight,
+            // Hjørne 2 (stramt)
+            .curveLeft, .curveLeft,                      // 90°
+            // Side 3 (matcher side 1)
+            .straight, .straightLong,
+            // Hjørne 3 (bredt)
+            .wideCurveLeft, .wideCurveLeft,              // 90°
+            // Side 4 (matcher side 2)
+            .straight, .straight,
+            // Hjørne 4 (stramt)
+            .curveLeft, .curveLeft,                      // 90°
         ]
     )
 }
