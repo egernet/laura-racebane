@@ -1,0 +1,13 @@
+# Xcode projekt (genereres af XcodeGen)
+Racebane.xcodeproj/
+
+# Xcode user data
+*.xcuserdata/
+*.xcworkspace/
+
+# Build output
+build/
+DerivedData/
+
+# OS files
+.DS_Store
