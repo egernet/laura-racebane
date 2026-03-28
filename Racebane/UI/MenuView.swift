@@ -4,6 +4,7 @@ import SceneKit
 /// Hovedmenu med banevælger
 struct MenuView: View {
     @State private var selectedTrack: TrackDefinition?
+    @State private var showPieceCatalog = false
 
     var body: some View {
         NavigationStack {
@@ -54,8 +55,32 @@ struct MenuView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    Spacer()
+                    // Banestykker-knap
+                    Button {
+                        showPieceCatalog = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "puzzlepiece.extension")
+                            Text("Banestykker")
+                        }
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.15))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .padding(.bottom, 30)
                 }
+            }
+            .sheet(isPresented: $showPieceCatalog) {
+                PieceCatalogView()
             }
             .navigationDestination(for: String.self) { trackName in
                 if let track = TrackCatalog.allTracks.first(where: { $0.name == trackName }) {
