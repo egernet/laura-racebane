@@ -8,6 +8,9 @@ struct ContentView: View {
     @State private var isThrottlePressed = false
     @State private var speed: Float = 0
     @State private var lapCount: Int = 0
+    @State private var dangerLevel: Float = 0
+    @State private var isPenalty: Bool = false
+    @State private var penaltyProgress: Float = 0
 
     var body: some View {
         ZStack {
@@ -17,33 +20,18 @@ struct ContentView: View {
             }
 
             // HUD overlay
+            HUDView(
+                speed: speed,
+                maxSpeed: 15.0,
+                lapCount: lapCount,
+                dangerLevel: dangerLevel,
+                isPenalty: isPenalty,
+                penaltyProgress: penaltyProgress
+            )
+
+            // Gas-knap
             VStack {
-                // Titel
-                HStack {
-                    Text("Racebane")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-
-                    Spacer()
-
-                    // Hastighed
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(Int(speed * 3.6)) km/t")
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(speedColor)
-                        Text("Omgang \(lapCount + 1)")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 50)
-
                 Spacer()
-
-                // Gas-knap
                 HStack {
                     Spacer()
                     ThrottleButton(isPressed: $isThrottlePressed)
@@ -60,13 +48,6 @@ struct ContentView: View {
         }
     }
 
-    private var speedColor: Color {
-        let ratio = speed / 15.0
-        if ratio < 0.5 { return .green }
-        if ratio < 0.75 { return .yellow }
-        return .red
-    }
-
     private func setupGame() {
         let engine = GameEngine(raceScene: raceScene, cameraRig: cameraRig)
         let player = engine.addCar(color: .systemPink, lane: 0)
@@ -75,6 +56,9 @@ struct ContentView: View {
             if let p = player {
                 speed = p.speed
                 lapCount = p.lapCount
+                dangerLevel = p.dangerLevel
+                isPenalty = p.flyOff.state == .penalty
+                penaltyProgress = p.flyOff.penaltyProgress
             }
         }
 
