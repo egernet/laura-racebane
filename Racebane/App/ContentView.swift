@@ -23,6 +23,7 @@ struct RaceContentView: View {
     @State private var isPenalty: Bool = false
     @State private var penaltyProgress: Float = 0
     @State private var showGoText: Bool = false
+    @State private var cameraMode: CameraRig.Mode = .overhead
 
     var body: some View {
         ZStack {
@@ -53,16 +54,37 @@ struct RaceContentView: View {
                 CountdownView(number: nil, isRacing: true)
             }
 
-            // Gas-knap (kun under racing)
+            // Kontroller (kun under racing)
             if gameState.isRacing {
                 VStack {
                     Spacer()
-                    HStack {
+                    HStack(alignment: .bottom) {
+                        // Kamera-knap (venstre)
+                        Button {
+                            cameraRig?.cycleMode()
+                            cameraMode = cameraRig?.mode ?? .overhead
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: "camera.rotate")
+                                    .font(.system(size: 20))
+                                Text(cameraMode.rawValue)
+                                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 70, height: 70)
+                            .background(
+                                Circle().fill(Color.white.opacity(0.2))
+                            )
+                        }
+                        .padding(.leading, 30)
+
                         Spacer()
+
+                        // Gas-knap (højre)
                         ThrottleButton(isPressed: $isThrottlePressed)
                             .padding(.trailing, 40)
-                            .padding(.bottom, 40)
                     }
+                    .padding(.bottom, 40)
                 }
             }
 
