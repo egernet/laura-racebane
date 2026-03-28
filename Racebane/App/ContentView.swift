@@ -1,8 +1,17 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let raceScene = RaceScene()
-    private let cameraRig = CameraRig()
+    var body: some View {
+        MenuView()
+    }
+}
+
+/// Selve race-skærmen for en valgt bane
+struct RaceContentView: View {
+    let trackDefinition: TrackDefinition
+
+    @State private var raceScene: RaceScene?
+    @State private var cameraRig: CameraRig?
     @State private var gameEngine: GameEngine?
     @State private var playerController: CarController?
     @State private var isThrottlePressed = false
@@ -14,12 +23,11 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            if let engine = gameEngine {
-                RaceView(raceScene: raceScene, cameraRig: cameraRig, gameEngine: engine)
+            if let scene = raceScene, let cam = cameraRig, let engine = gameEngine {
+                RaceView(raceScene: scene, cameraRig: cam, gameEngine: engine)
                     .ignoresSafeArea()
             }
 
-            // HUD overlay
             HUDView(
                 speed: speed,
                 maxSpeed: 15.0,
@@ -29,7 +37,6 @@ struct ContentView: View {
                 penaltyProgress: penaltyProgress
             )
 
-            // Gas-knap
             VStack {
                 Spacer()
                 HStack {
@@ -40,6 +47,7 @@ struct ContentView: View {
                 }
             }
         }
+        .navigationBarHidden(true)
         .onAppear {
             setupGame()
         }
@@ -49,7 +57,9 @@ struct ContentView: View {
     }
 
     private func setupGame() {
-        let engine = GameEngine(raceScene: raceScene, cameraRig: cameraRig)
+        let scene = RaceScene(trackDefinition: trackDefinition)
+        let cam = CameraRig()
+        let engine = GameEngine(raceScene: scene, cameraRig: cam)
         let player = engine.addCar(color: .systemPink, lane: 0)
 
         engine.onUpdate = { [weak player] in
@@ -62,8 +72,10 @@ struct ContentView: View {
             }
         }
 
-        cameraRig.setupOverhead(trackPath: raceScene.trackPath)
+        cam.setupOverhead(trackPath: scene.trackPath)
 
+        self.raceScene = scene
+        self.cameraRig = cam
         self.playerController = player
         self.gameEngine = engine
     }

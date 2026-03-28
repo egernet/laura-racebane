@@ -6,7 +6,7 @@ class RaceScene {
     let trackNode: SCNNode
     let trackPath: TrackPath
 
-    init(trackDefinition: TrackDefinition = .beginnerOval) {
+    init(trackDefinition: TrackDefinition = TrackCatalog.beginnerOval) {
         scene = SCNScene()
 
         // Byg bane

@@ -25,20 +25,4 @@ struct TrackDefinition {
         self.trackWidth = trackWidth
     }
 
-    /// Simpel oval bane til at starte med
-    static let beginnerOval: TrackDefinition = {
-        let straightLength: Float = 8.0
-        let curveRadius: Float = 3.0
-        let curveAngle: Float = .pi // 180 grader
-
-        return TrackDefinition(
-            name: "Begynder Oval",
-            segments: [
-                .straight(length: straightLength),
-                .curve(angle: curveAngle, radius: curveRadius),
-                .straight(length: straightLength),
-                .curve(angle: curveAngle, radius: curveRadius)
-            ]
-        )
-    }()
 }
