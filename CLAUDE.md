@@ -70,5 +70,5 @@ RacebaneTests/   - TrackValidatorTests
 - [x] Fase 4: Flere baner og banevælger
 - [x] Fase 5: Race-struktur (nedtælling, AI, resultat)
 - [x] Fase 6: Lokal multiplayer
-- [ ] Fase 7: Polish og tilgængelighed
-- [ ] Fase 8: AR Mode
+- [x] Fase 7: Polish og tilgængelighed
+- [x] Fase 8: AR Mode
