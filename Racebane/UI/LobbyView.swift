@@ -53,6 +53,16 @@ struct LobbyView: View {
             .padding(.top, 60)
         }
         .navigationBarHidden(true)
+        .onAppear {
+            // Lyt efter start-signal fra host (kun relevant for client)
+            session.onMessageReceived = { message, _ in
+                if case .lobbyUpdate(let lobby) = message, lobby.isStarting {
+                    DispatchQueue.main.async {
+                        startGame = true
+                    }
+                }
+            }
+        }
         .fullScreenCover(isPresented: $startGame) {
             MultiplayerRaceView(
                 trackDefinition: trackDefinition,
