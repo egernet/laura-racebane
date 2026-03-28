@@ -7,7 +7,8 @@ struct ARRaceView: UIViewRepresentable {
     let trackDefinition: TrackDefinition
     @Binding var isTrackPlaced: Bool
     @Binding var trackScale: Float
-    let onSceneReady: (SCNScene, TrackPath) -> Void
+    @Binding var gameEngine: GameEngine?
+    let onSceneReady: (SCNScene, TrackPath, SCNNode) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -52,6 +53,10 @@ struct ARRaceView: UIViewRepresentable {
         }
 
         // Vis detekterede flader som halvgennemsigtige planer
+        func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+            parent.gameEngine?.renderer(renderer, updateAtTime: time)
+        }
+
         func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
             guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
             guard !parent.isTrackPlaced else { return }
@@ -161,7 +166,7 @@ struct ARRaceView: UIViewRepresentable {
             DispatchQueue.main.async {
                 self.parent.isTrackPlaced = true
                 self.parent.trackScale = scale
-                self.parent.onSceneReady(arView.scene, trackPath)
+                self.parent.onSceneReady(arView.scene, trackPath, trackBuild)
             }
         }
     }

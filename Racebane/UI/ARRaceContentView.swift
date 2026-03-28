@@ -31,8 +31,9 @@ struct ARRaceContentView: View {
                 trackDefinition: trackDefinition,
                 isTrackPlaced: $isTrackPlaced,
                 trackScale: $trackScale,
-                onSceneReady: { scene, trackPath in
-                    setupARGame(scene: scene, trackPath: trackPath)
+                gameEngine: $gameEngine,
+                onSceneReady: { scene, trackPath, trackNode in
+                    setupARGame(scene: scene, trackPath: trackPath, trackNode: trackNode)
                 }
             )
             .ignoresSafeArea()
@@ -130,7 +131,7 @@ struct ARRaceContentView: View {
         }
     }
 
-    private func setupARGame(scene: SCNScene, trackPath: TrackPath) {
+    private func setupARGame(scene: SCNScene, trackPath: TrackPath, trackNode: SCNNode) {
         // Opret en dummy RaceScene wrapper for GameEngine
         let raceScene = RaceScene(trackDefinition: trackDefinition)
         let cam = CameraRig() // Bruges ikke i AR, men GameEngine kræver det
@@ -143,9 +144,12 @@ struct ARRaceContentView: View {
         let aiDifficulty: Float = [0.55, 0.7, 0.85][min(difficulty, 2)]
         _ = engine.addAI(color: .systemBlue, lane: 1, difficulty: aiDifficulty)
 
-        // Skaler bilerne ned til AR-størrelse og tilføj til AR-scenen
+        // Flyt bilerne fra dummy-scenen til AR-bane-noden.
+        // Bilerne er børn af trackNode (som allerede er skaleret 0.05),
+        // så positioner fra TrackPath matcher direkte banens geometri.
         for controller in engine.carControllers {
-            controller.carNode.scale = SCNVector3(trackScale, trackScale, trackScale)
+            controller.carNode.removeFromParentNode()
+            trackNode.addChildNode(controller.carNode)
         }
 
         engine.onUpdate = { [weak player] in
@@ -157,6 +161,21 @@ struct ARRaceContentView: View {
                 penaltyProgress = p.flyOff.penaltyProgress
             }
         }
+
+        // Tilføj lys til AR-scenen så materialer vises korrekt.
+        // autoenablesDefaultLighting virker ikke når bilen har en forlygte.
+        let sun = SCNNode()
+        sun.light = SCNLight()
+        sun.light!.type = .directional
+        sun.light!.color = UIColor(white: 0.9, alpha: 1.0)
+        sun.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
+        scene.rootNode.addChildNode(sun)
+
+        let ambient = SCNNode()
+        ambient.light = SCNLight()
+        ambient.light!.type = .ambient
+        ambient.light!.color = UIColor(white: 0.5, alpha: 1.0)
+        scene.rootNode.addChildNode(ambient)
 
         self.playerController = player
         self.gameEngine = engine
