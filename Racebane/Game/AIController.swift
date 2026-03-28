@@ -25,9 +25,13 @@ class AIController {
         let maxSpeed = carController.maxSpeed
 
         if curvature < 100 {
-            // I en kurve: beregn sikker hastighed
-            let safeSpeed = sqrt(carController.flyOff.flyOffThreshold * curvature) * 0.85
-            let targetSpeed = safeSpeed * targetSpeedRatio
+            // I en kurve: hold lidt margin, så AI også lærer at slippe gassen
+            let safeSpeed = carController.flyOff.maxSafeSpeed(
+                curvatureRadius: curvature,
+                throttleGripPenalty: carController.throttleGripPenalty
+            )
+            let curveMargin = 0.78 + targetSpeedRatio * 0.12
+            let targetSpeed = safeSpeed * curveMargin
 
             // Slip gas hvis for hurtig, tryk gas hvis for langsom
             carController.isThrottlePressed = speed < targetSpeed

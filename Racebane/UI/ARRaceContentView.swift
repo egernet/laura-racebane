@@ -63,7 +63,7 @@ struct ARRaceContentView: View {
 
             // HUD efter placering
             if isTrackPlaced && gameState.isRacing {
-                HUDView(speed: speed, maxSpeed: 15.0, lapCount: lapCount,
+                HUDView(speed: speed, maxSpeed: 24.0, lapCount: lapCount,
                         totalLaps: gameState.totalLaps, raceTime: gameState.raceTime,
                         dangerLevel: dangerLevel, isPenalty: isPenalty, penaltyProgress: penaltyProgress)
             }

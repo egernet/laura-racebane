@@ -232,7 +232,7 @@ struct HostRaceView: View {
             }
 
             if gameState.isRacing {
-                HUDView(speed: speed, maxSpeed: 15.0, lapCount: lapCount,
+                HUDView(speed: speed, maxSpeed: 24.0, lapCount: lapCount,
                         totalLaps: gameState.totalLaps, raceTime: gameState.raceTime,
                         dangerLevel: dangerLevel, isPenalty: isPenalty, penaltyProgress: penaltyProgress)
             }
@@ -344,7 +344,7 @@ struct ClientRaceView: View {
             }
 
             if clientEngine.phase == "racing" {
-                HUDView(speed: clientEngine.playerSpeed, maxSpeed: 15.0,
+                HUDView(speed: clientEngine.playerSpeed, maxSpeed: 24.0,
                         lapCount: clientEngine.playerLap, totalLaps: 3,
                         raceTime: clientEngine.raceTime, dangerLevel: 0,
                         isPenalty: clientEngine.isPlayerDisabled, penaltyProgress: 0)

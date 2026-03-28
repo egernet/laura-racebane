@@ -17,14 +17,19 @@ class CarController {
     /// Er gas-pedalen trykket?
     var isThrottlePressed: Bool = false
 
+    /// Hvor meget greb mister bilen pga. vedvarende gas i svinget (0.0 til 1.0)
+    private(set) var throttleGripPenalty: Float = 0.0
+
     /// Antal gennemførte omgange
     var lapCount: Int = 0
 
     // Fysik-konstanter
-    let maxSpeed: Float = 15.0
+    let maxSpeed: Float = 24.0
     let acceleration: Float = 6.0
     let drag: Float = 3.0
     let rollingFriction: Float = 0.5
+    let throttleGripBuildRate: Float = 4.0
+    let throttleGripReleaseRate: Float = 6.0
 
     /// Aktuel kurvaturradius (til HUD)
     var currentCurvatureRadius: Float = .infinity
@@ -50,10 +55,13 @@ class CarController {
             // Når straf er ovre, nulstil hastighed og placer bilen på banen
             if !flyOff.isDisabled {
                 speed = 0
+                throttleGripPenalty = 0
                 updateCarTransform()
             }
             return
         }
+
+        updateThrottleGripPenalty(deltaTime: clampedDt)
 
         // Acceleration eller deceleration
         if isThrottlePressed {
@@ -69,7 +77,11 @@ class CarController {
         currentCurvatureRadius = currentPoint.curvatureRadius
 
         // Tjek om bilen flyver af
-        if flyOff.checkFlyOff(speed: speed, curvatureRadius: currentPoint.curvatureRadius) {
+        if flyOff.checkFlyOff(
+            speed: speed,
+            curvatureRadius: currentPoint.curvatureRadius,
+            throttleGripPenalty: throttleGripPenalty
+        ) {
             flyOff.triggerFlyOff(carNode: carNode, trackPoint: currentPoint, speed: speed)
             return
         }
@@ -90,7 +102,22 @@ class CarController {
 
     /// Fare-niveau for HUD (0.0 til 1.0+)
     var dangerLevel: Float {
-        flyOff.dangerLevel(speed: speed, curvatureRadius: currentCurvatureRadius)
+        flyOff.dangerLevel(
+            speed: speed,
+            curvatureRadius: currentCurvatureRadius,
+            throttleGripPenalty: throttleGripPenalty
+        )
+    }
+
+    private func updateThrottleGripPenalty(deltaTime dt: Float) {
+        let target: Float = isThrottlePressed ? 1.0 : 0.0
+        let rate = isThrottlePressed ? throttleGripBuildRate : throttleGripReleaseRate
+
+        if throttleGripPenalty < target {
+            throttleGripPenalty = min(target, throttleGripPenalty + rate * dt)
+        } else {
+            throttleGripPenalty = max(target, throttleGripPenalty - rate * dt)
+        }
     }
 
     private func updateCarTransform() {

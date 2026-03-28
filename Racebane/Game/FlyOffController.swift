@@ -19,16 +19,23 @@ class FlyOffController {
     private var flyOffDirection: SCNVector3 = SCNVector3Zero
     private var flyOffProgress: Float = 0
 
-    /// Centripetal kraft threshold (m/s²) - over dette flyver bilen af
-    let flyOffThreshold: Float = 12.0
+    /// Basis-greb før kurve- og gasmodifikatorer
+    let baseGrip: Float = 190.0
+    let maxThrottleGripPenalty: Float = 0.12
+
+    /// Beholdt som referencepunkt for tuning og AI
+    var flyOffThreshold: Float { baseGrip }
 
     /// Tjek om bilen skal flyve af banen
-    func checkFlyOff(speed: Float, curvatureRadius: Float) -> Bool {
+    func checkFlyOff(speed: Float, curvatureRadius: Float, throttleGripPenalty: Float) -> Bool {
         guard state == .onTrack else { return false }
         guard curvatureRadius < 100 else { return false } // Lige stykke, ingen risiko
 
-        let centripetalAcceleration = (speed * speed) / curvatureRadius
-        return centripetalAcceleration > flyOffThreshold
+        return dangerLevel(
+            speed: speed,
+            curvatureRadius: curvatureRadius,
+            throttleGripPenalty: throttleGripPenalty
+        ) > 1.0
     }
 
     /// Start afkørsel
@@ -38,7 +45,7 @@ class FlyOffController {
         flyOffStartPos = carNode.position
 
         // Beregn afkørselsretning: udad fra kurven + lidt opad
-        let outward = trackPoint.right
+        let outward = trackPoint.curveDirection >= 0 ? trackPoint.right : trackPoint.right * -1
         let tangent = trackPoint.tangent
         flyOffDirection = SCNVector3(
             SCNFloat(Float(tangent.x) * 0.5 + Float(outward.x) * 1.0),
@@ -113,10 +120,39 @@ class FlyOffController {
     }
 
     /// Beregn "fare-niveau" for nuværende hastighed i en kurve (0.0 til 1.0+)
-    func dangerLevel(speed: Float, curvatureRadius: Float) -> Float {
+    func dangerLevel(speed: Float, curvatureRadius: Float, throttleGripPenalty: Float) -> Float {
         guard curvatureRadius < 100 else { return 0 }
-        let centripetalAcceleration = (speed * speed) / curvatureRadius
-        return centripetalAcceleration / flyOffThreshold
+
+        let grip = availableGrip(
+            curvatureRadius: curvatureRadius,
+            throttleGripPenalty: throttleGripPenalty
+        )
+        guard grip > 0 else { return 0 }
+
+        return lateralLoad(speed: speed, curvatureRadius: curvatureRadius) / grip
+    }
+
+    func lateralLoad(speed: Float, curvatureRadius: Float) -> Float {
+        guard curvatureRadius < 100 else { return 0 }
+        return (speed * speed) / max(curvatureRadius, 0.1)
+    }
+
+    func availableGrip(curvatureRadius: Float, throttleGripPenalty: Float) -> Float {
+        guard curvatureRadius < 100 else { return .greatestFiniteMagnitude }
+
+        let curveGripFactor = gripFactorForCurve(curvatureRadius: curvatureRadius)
+        let throttleGripFactor = 1.0 - clampedUnit(throttleGripPenalty) * maxThrottleGripPenalty
+        return baseGrip * curveGripFactor * throttleGripFactor
+    }
+
+    func maxSafeSpeed(curvatureRadius: Float, throttleGripPenalty: Float) -> Float {
+        guard curvatureRadius < 100 else { return .greatestFiniteMagnitude }
+
+        let grip = availableGrip(
+            curvatureRadius: curvatureRadius,
+            throttleGripPenalty: throttleGripPenalty
+        )
+        return sqrt(max(grip, 0) * curvatureRadius)
     }
 
     private func addSparkEffect(to node: CarNode) {
@@ -130,5 +166,15 @@ class FlyOffController {
         sparks.particleVelocity = 2
         sparks.particleLifeSpanVariation = 0.1
         node.addParticleSystem(sparks)
+    }
+
+    private func gripFactorForCurve(curvatureRadius: Float) -> Float {
+        let clampedRadius = min(max(curvatureRadius, 2.5), 4.0)
+        let t = (clampedRadius - 2.5) / (4.0 - 2.5)
+        return 0.95 + t * 0.10
+    }
+
+    private func clampedUnit(_ value: Float) -> Float {
+        min(max(value, 0), 1)
     }
 }

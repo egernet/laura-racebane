@@ -37,7 +37,7 @@ struct RaceContentView: View {
             if gameState.isRacing {
                 HUDView(
                     speed: speed,
-                    maxSpeed: 15.0,
+                    maxSpeed: 24.0,
                     lapCount: lapCount,
                     totalLaps: gameState.totalLaps,
                     raceTime: gameState.raceTime,

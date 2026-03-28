@@ -7,6 +7,7 @@ struct PathPoint {
     let normal: SCNVector3
     let right: SCNVector3
     let curvatureRadius: Float
+    let curveDirection: Float
     let distance: Float
 }
 
@@ -42,6 +43,7 @@ class TrackPath {
                         normal: SCNVector3(0, 1, 0),
                         right: SCNVector3(SCNFloat(rx), 0, SCNFloat(rz)),
                         curvatureRadius: .infinity,
+                        curveDirection: 0,
                         distance: dist
                     ))
 
@@ -78,6 +80,7 @@ class TrackPath {
                         normal: SCNVector3(0, 1, 0),
                         right: SCNVector3(SCNFloat(rx), 0, SCNFloat(rz)),
                         curvatureRadius: radius,
+                        curveDirection: angle > 0 ? 1 : -1,
                         distance: dist + abs(a) * radius
                     ))
                 }
@@ -104,6 +107,7 @@ class TrackPath {
                 normal: SCNVector3(0, 1, 0),
                 right: SCNVector3(0, 0, 1),
                 curvatureRadius: .infinity,
+                curveDirection: 0,
                 distance: 0
             )
         }
