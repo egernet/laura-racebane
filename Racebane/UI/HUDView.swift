@@ -5,6 +5,8 @@ struct HUDView: View {
     let speed: Float
     let maxSpeed: Float
     let lapCount: Int
+    let totalLaps: Int
+    let raceTime: Float
     let dangerLevel: Float
     let isPenalty: Bool
     let penaltyProgress: Float
@@ -13,26 +15,26 @@ struct HUDView: View {
         VStack {
             // Top bar
             HStack {
-                Text("Racebane")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 4)
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    // Hastighed
-                    Text("\(Int(speed * 3.6)) km/t")
-                        .font(.system(size: 22, weight: .bold, design: .monospaced))
-                        .foregroundColor(speedColor)
+                // Venstre: tid
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formatTime(raceTime))
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.5), radius: 4)
 
-                    // Omgang
-                    Text("Omgang \(lapCount + 1)")
+                    Text("Omgang \(min(lapCount + 1, totalLaps))/\(totalLaps)")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
                         .shadow(color: .black.opacity(0.5), radius: 4)
                 }
+
+                Spacer()
+
+                // Højre: hastighed
+                Text("\(Int(speed * 3.6)) km/t")
+                    .font(.system(size: 22, weight: .bold, design: .monospaced))
+                    .foregroundColor(speedColor)
+                    .shadow(color: .black.opacity(0.5), radius: 4)
             }
             .padding(.horizontal, 20)
             .padding(.top, 50)
@@ -61,6 +63,13 @@ struct HUDView: View {
         if dangerLevel > 0.8 { return .red }
         if dangerLevel > 0.5 { return .yellow }
         return .green
+    }
+
+    private func formatTime(_ time: Float) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        let hundredths = Int((time - Float(Int(time))) * 100)
+        return String(format: "%d:%02d.%02d", minutes, seconds, hundredths)
     }
 }
 
