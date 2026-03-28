@@ -5,7 +5,13 @@ import MultipeerConnectivity
 /// Lobby til multiplayer - find og forbind med andre spillere
 struct LobbyView: View {
     let trackDefinition: TrackDefinition
+    let isAR: Bool
     @StateObject private var session = SessionManager()
+
+    init(trackDefinition: TrackDefinition, isAR: Bool = false) {
+        self.trackDefinition = trackDefinition
+        self.isAR = isAR
+    }
     @State private var isHosting = false
     @State private var isJoining = false
     @State private var startGame = false
@@ -67,7 +73,8 @@ struct LobbyView: View {
             MultiplayerRaceView(
                 trackDefinition: trackDefinition,
                 session: session,
-                isHost: isHosting
+                isHost: isHosting,
+                isAR: isAR
             )
         }
     }
@@ -191,13 +198,22 @@ struct MultiplayerRaceView: View {
     let trackDefinition: TrackDefinition
     let session: SessionManager
     let isHost: Bool
+    let isAR: Bool
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        if isHost {
-            HostRaceView(trackDefinition: trackDefinition, session: session)
+        if isAR {
+            if isHost {
+                ARHostRaceView(trackDefinition: trackDefinition, session: session)
+            } else {
+                ARClientRaceView(trackDefinition: trackDefinition, session: session)
+            }
         } else {
-            ClientRaceView(trackDefinition: trackDefinition, session: session)
+            if isHost {
+                HostRaceView(trackDefinition: trackDefinition, session: session)
+            } else {
+                ClientRaceView(trackDefinition: trackDefinition, session: session)
+            }
         }
     }
 }

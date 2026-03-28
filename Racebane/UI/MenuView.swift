@@ -82,6 +82,21 @@ struct MenuView: View {
                                                 .padding(.vertical, 6)
                                                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
                                             }
+
+                                            NavigationLink(value: "ar-mp:\(track.name)") {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arkit")
+                                                        .font(.system(size: 11))
+                                                    Image(systemName: "wifi")
+                                                        .font(.system(size: 9))
+                                                    Text("AR+MP")
+                                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                                }
+                                                .foregroundColor(.purple)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.purple.opacity(0.15)))
+                                            }
                                         }
                                     }
                                 }
@@ -112,7 +127,12 @@ struct MenuView: View {
                 ARRaceContentView(trackDefinition: track)
             }
             .navigationDestination(for: String.self) { trackName in
-                if trackName.hasPrefix("mp:") {
+                if trackName.hasPrefix("ar-mp:") {
+                    let name = String(trackName.dropFirst(6))
+                    if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
+                        LobbyView(trackDefinition: track, isAR: true)
+                    }
+                } else if trackName.hasPrefix("mp:") {
                     let name = String(trackName.dropFirst(3))
                     if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
                         LobbyView(trackDefinition: track)
