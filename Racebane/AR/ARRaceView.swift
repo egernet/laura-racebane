@@ -23,6 +23,9 @@ struct ARRaceView: UIViewRepresentable {
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .automatic
+        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+            config.sceneReconstruction = .mesh
+        }
         arView.session.run(config)
 
         // Tap gesture for at placere banen
@@ -45,6 +48,7 @@ struct ARRaceView: UIViewRepresentable {
         let parent: ARRaceView
         weak var arView: ARSCNView?
         private var planeNodes: [UUID: SCNNode] = [:]
+        private var meshNodes: [UUID: SCNNode] = [:]
         private var trackNode: SCNNode?
         private var trackAnchor: ARAnchor?
 
@@ -58,41 +62,94 @@ struct ARRaceView: UIViewRepresentable {
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-            guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-            guard !parent.isTrackPlaced else { return }
+            if let planeAnchor = anchor as? ARPlaneAnchor {
+                guard !parent.isTrackPlaced else { return }
 
-            let plane = SCNPlane(
-                width: CGFloat(planeAnchor.extent.x),
-                height: CGFloat(planeAnchor.extent.z)
-            )
-            let material = SCNMaterial()
-            material.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.3)
-            plane.materials = [material]
+                let plane = SCNPlane(
+                    width: CGFloat(planeAnchor.extent.x),
+                    height: CGFloat(planeAnchor.extent.z)
+                )
+                let material = SCNMaterial()
+                material.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.3)
+                plane.materials = [material]
 
-            let planeNode = SCNNode(geometry: plane)
-            planeNode.eulerAngles.x = -.pi / 2
-            planeNode.position = SCNVector3(
-                planeAnchor.center.x,
-                0,
-                planeAnchor.center.z
-            )
+                let planeNode = SCNNode(geometry: plane)
+                planeNode.eulerAngles.x = -.pi / 2
+                planeNode.position = SCNVector3(
+                    planeAnchor.center.x,
+                    0,
+                    planeAnchor.center.z
+                )
+                node.addChildNode(planeNode)
+                planeNodes[anchor.identifier] = planeNode
 
-            node.addChildNode(planeNode)
-            planeNodes[anchor.identifier] = planeNode
+            } else if let meshAnchor = anchor as? ARMeshAnchor {
+                let occluder = buildOccluderNode(from: meshAnchor.geometry)
+                node.addChildNode(occluder)
+                meshNodes[anchor.identifier] = occluder
+            }
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-            guard let planeAnchor = anchor as? ARPlaneAnchor,
-                  let planeNode = planeNodes[anchor.identifier],
-                  let plane = planeNode.geometry as? SCNPlane else { return }
+            if let planeAnchor = anchor as? ARPlaneAnchor,
+               let planeNode = planeNodes[anchor.identifier],
+               let plane = planeNode.geometry as? SCNPlane {
+                plane.width = CGFloat(planeAnchor.extent.x)
+                plane.height = CGFloat(planeAnchor.extent.z)
+                planeNode.position = SCNVector3(
+                    planeAnchor.center.x,
+                    0,
+                    planeAnchor.center.z
+                )
+            } else if let meshAnchor = anchor as? ARMeshAnchor,
+                      let occluder = meshNodes[anchor.identifier] {
+                occluder.geometry = makeOccluderGeometry(from: meshAnchor.geometry)
+            }
+        }
 
-            plane.width = CGFloat(planeAnchor.extent.x)
-            plane.height = CGFloat(planeAnchor.extent.z)
-            planeNode.position = SCNVector3(
-                planeAnchor.center.x,
-                0,
-                planeAnchor.center.z
+        // MARK: - Mesh Occlusion
+
+        private func buildOccluderNode(from meshGeometry: ARMeshGeometry) -> SCNNode {
+            let node = SCNNode(geometry: makeOccluderGeometry(from: meshGeometry))
+            node.renderingOrder = -1
+            return node
+        }
+
+        private func makeOccluderGeometry(from meshGeometry: ARMeshGeometry) -> SCNGeometry {
+            let vb = meshGeometry.vertices
+            let vertexSource = SCNGeometrySource(
+                buffer: vb.buffer, vertexFormat: .float3,
+                semantic: .vertex, vertexCount: vb.count,
+                dataOffset: vb.offset, dataStride: vb.stride
             )
+
+            let nb = meshGeometry.normals
+            let normalSource = SCNGeometrySource(
+                buffer: nb.buffer, vertexFormat: .float3,
+                semantic: .normal, vertexCount: nb.count,
+                dataOffset: nb.offset, dataStride: nb.stride
+            )
+
+            let fb = meshGeometry.faces
+            let indexData = Data(bytes: fb.buffer.contents(), count: fb.buffer.length)
+            let element = SCNGeometryElement(
+                data: indexData, primitiveType: .triangles,
+                primitiveCount: fb.count, bytesPerIndex: fb.bytesPerIndex
+            )
+
+            let geometry = SCNGeometry(sources: [vertexSource, normalSource], elements: [element])
+            geometry.materials = [makeOccluderMaterial()]
+            return geometry
+        }
+
+        private func makeOccluderMaterial() -> SCNMaterial {
+            let m = SCNMaterial()
+            m.colorBufferWriteMask = []
+            m.writesToDepthBuffer = true
+            m.readsFromDepthBuffer = true
+            m.lightingModel = .constant
+            m.isDoubleSided = true
+            return m
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
