@@ -24,21 +24,20 @@ struct TrackCatalog {
         ]
     )
 
-    /// Otte-tal - to loops forbundet med kryds-stykker
-    /// Begge loops bruger curveLeft. Fra modsatte retninger kurver de
-    /// automatisk op/ned → banen krydser sig selv ved crossover.
-    /// Total vinkel: 360° (bilen drejer en fuld omgang)
+    /// Otte-tal - to tydeligt adskilte loops forbundet med lige stykker
+    /// Krydset er midt i de lige stykker hvor banen krydser sig selv.
+    /// Lange forbindelser giver tydelig 8-form set oppefra.
     static let figurEight = TrackDefinition(
         name: "Otte-tal",
         pieces: [
-            // Kryds ud
-            .crossover,
-            // Øverste loop
-            .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
-            // Kryds tilbage (her krydser banen sig selv)
-            .crossover,
-            // Nederste loop (fra modsatte retning → kurver nedad)
-            .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
+            // Forbindelse til højre loop
+            .straightLong, .crossover, .straightLong,
+            // Højre loop (180°)
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,
+            // Forbindelse tilbage (krydser den første forbindelse)
+            .straightLong, .crossover, .straightLong,
+            // Venstre loop (180° - fra modsatte retning kurver den den anden vej)
+            .curveLeft, .curveLeft, .curveLeft, .curveLeft,
         ]
     )
 
