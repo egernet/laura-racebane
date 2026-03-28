@@ -93,6 +93,38 @@ class TrackPath {
             }
         }
 
+        // Anvend bro-elevation hvis defineret
+        if let bridgeProg = definition.bridgeCenterProgress {
+            let bridgeDist = bridgeProg * dist
+            let rampHalf = definition.bridgeRampLength / 2.0
+            let height = definition.bridgeHeight
+
+            for i in 0..<sampledPoints.count {
+                let d = sampledPoints[i].distance
+                var delta = abs(d - bridgeDist)
+                delta = min(delta, dist - delta)  // Cirkulær afstand
+
+                let y: Float
+                if delta < rampHalf {
+                    // Cosinus-interpolation: glat rampe
+                    let t = delta / rampHalf
+                    y = height * 0.5 * (1.0 + cos(t * .pi))
+                } else {
+                    y = 0
+                }
+                let p = sampledPoints[i]
+                sampledPoints[i] = PathPoint(
+                    position: SCNVector3(p.position.x, SCNFloat(y), p.position.z),
+                    tangent: p.tangent,
+                    normal: p.normal,
+                    right: p.right,
+                    curvatureRadius: p.curvatureRadius,
+                    curveDirection: p.curveDirection,
+                    distance: p.distance
+                )
+            }
+        }
+
         self.points = sampledPoints
         self.totalLength = dist
         self.isClosed = true

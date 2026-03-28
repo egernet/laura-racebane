@@ -67,9 +67,9 @@ final class TrackValidatorTests: XCTestCase {
 
     func testFigureEightAngleSum() {
         let track = TrackCatalog.figurEight
-        // Otte-tal med crossover: begge loops drejer venstre = 360° total
-        XCTAssertEqual(track.totalAngleDegrees, 360, accuracy: 0.1,
-                       "Otte-tal vinkelsum burde være 360°, er \(track.totalAngleDegrees)°")
+        // Rigtigt 8-tal: curveLeft (360°) + curveRight (-360°) = 0° total
+        XCTAssertEqual(track.totalAngleDegrees, 0, accuracy: 0.1,
+                       "Otte-tal vinkelsum burde være 0°, er \(track.totalAngleDegrees)°")
     }
 
     func testGrandPrixAngleSum() {

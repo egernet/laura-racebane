@@ -28,21 +28,24 @@ struct TrackCatalog {
         ]
     )
 
-    /// Otte-tal - to tydeligt adskilte loops forbundet med lige stykker
-    /// Krydset er midt i de lige stykker hvor banen krydser sig selv.
-    /// Lange forbindelser giver tydelig 8-form set oppefra.
+    /// Otte-tal - to fulde cirkler der mødes ved krydspunktet
+    /// Øverste cirkel: 8x curveLeft (360° mod-uret)
+    /// Nedre cirkel: 8x curveRight (360° med-uret)
+    /// Begge cirkler tangerer ved (0,0) → rigtigt 8-form set oppefra.
+    /// Bro ved progress=0.5 (krydspunktet midt i banen).
     static let figurEight = TrackDefinition(
         name: "Otte-tal",
         pieces: [
-            // Forbindelse til højre loop
-            .straightLong, .crossover, .straightLong,
-            // Højre loop (180°)
+            // Øverste loop (mod-uret, 360°)
             .curveLeft, .curveLeft, .curveLeft, .curveLeft,
-            // Forbindelse tilbage (krydser den første forbindelse)
-            .straightLong, .crossover, .straightLong,
-            // Venstre loop (180° - fra modsatte retning kurver den den anden vej)
             .curveLeft, .curveLeft, .curveLeft, .curveLeft,
-        ]
+            // Nedre loop (med-uret, -360°) — krydser øverste ved bro
+            .curveRight, .curveRight, .curveRight, .curveRight,
+            .curveRight, .curveRight, .curveRight, .curveRight,
+        ],
+        bridgeCenterProgress: 0.5,
+        bridgeRampLength: 2.5,
+        bridgeHeight: 0.45
     )
 
     /// Grand Prix - rektangulær bane

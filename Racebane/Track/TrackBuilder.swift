@@ -26,6 +26,12 @@ class TrackBuilder {
         let startLine = buildStartLine(from: path, width: definition.trackWidth)
         trackNode.addChildNode(startLine)
 
+        // Byg bro hvis defineret
+        if definition.bridgeCenterProgress != nil {
+            let bridgeNode = buildBridge(from: path, width: definition.trackWidth)
+            trackNode.addChildNode(bridgeNode)
+        }
+
         return trackNode
     }
 
@@ -279,6 +285,50 @@ class TrackBuilder {
         node.eulerAngles.y = -Float(angle)
 
         return node
+    }
+
+    /// Byg bro-geometri: piller og gelændere under/ved hævede bane-segmenter
+    private static func buildBridge(from path: TrackPath, width: Float) -> SCNNode {
+        let bridgeNode = SCNNode()
+        let halfWidth = SCNFloat(width) / 2.0
+        let pillarThreshold: Float = 0.05
+        let pillarSpacing: Float = 1.0
+        var lastPillarDist: Float = -pillarSpacing
+
+        let concreteColor = UIColor(red: 0.75, green: 0.72, blue: 0.68, alpha: 1.0)
+        let railColor = UIColor(red: 0.6, green: 0.6, blue: 0.65, alpha: 1.0)
+
+        for point in path.points {
+            let y = Float(point.position.y)
+            guard y > pillarThreshold else { continue }
+            guard point.distance - lastPillarDist >= pillarSpacing else { continue }
+            lastPillarDist = point.distance
+
+            // Pille under bro-overfladen
+            let pillarHeight = CGFloat(y)
+            let pillar = SCNBox(width: 0.15, height: pillarHeight, length: 0.15, chamferRadius: 0.02)
+            let pillarMat = SCNMaterial()
+            pillarMat.diffuse.contents = concreteColor
+            pillar.materials = [pillarMat]
+
+            let pillarNode = SCNNode(geometry: pillar)
+            pillarNode.position = SCNVector3(point.position.x, SCNFloat(pillarHeight / 2), point.position.z)
+            bridgeNode.addChildNode(pillarNode)
+
+            // Gelændere på venstre og højre side
+            for side: SCNFloat in [-1, 1] {
+                let railPos = point.position + point.right * (halfWidth * side)
+                let rail = SCNBox(width: 0.04, height: 0.12, length: 0.04, chamferRadius: 0)
+                let railMat = SCNMaterial()
+                railMat.diffuse.contents = railColor
+                rail.materials = [railMat]
+                let railNode = SCNNode(geometry: rail)
+                railNode.position = SCNVector3(railPos.x, SCNFloat(y) + 0.06, railPos.z)
+                bridgeNode.addChildNode(railNode)
+            }
+        }
+
+        return bridgeNode
     }
 
     /// Hjælpefunktion til at bygge SCNGeometry

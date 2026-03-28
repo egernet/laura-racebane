@@ -125,7 +125,7 @@ class CarController {
         let laneOffset = SCNFloat(Float(lane) * laneWidth - laneWidth * 0.5)
         let position = point.position + point.right * laneOffset
 
-        carNode.position = SCNVector3(position.x, 0, position.z)
+        carNode.position = SCNVector3(position.x, position.y, position.z)
 
         let angle = atan2(point.tangent.x, point.tangent.z)
         carNode.eulerAngles.y = Float(angle) + .pi

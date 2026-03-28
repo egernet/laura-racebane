@@ -105,6 +105,11 @@ struct TrackDefinition: Identifiable {
     let laneWidth: Float
     let trackWidth: Float
 
+    /// Bro-indstillinger (nil = ingen bro)
+    let bridgeCenterProgress: Float?
+    let bridgeRampLength: Float
+    let bridgeHeight: Float
+
     var segments: [TrackSegment] {
         pieces.map { $0.segment }
     }
@@ -114,11 +119,15 @@ struct TrackDefinition: Identifiable {
         pieces.reduce(0) { $0 + $1.angleDegrees }
     }
 
-    init(name: String, pieces: [TrackPiece], laneCount: Int = 2, laneWidth: Float = 0.4, trackWidth: Float = 1.2) {
+    init(name: String, pieces: [TrackPiece], laneCount: Int = 2, laneWidth: Float = 0.4, trackWidth: Float = 1.2,
+         bridgeCenterProgress: Float? = nil, bridgeRampLength: Float = 2.0, bridgeHeight: Float = 0.4) {
         self.name = name
         self.pieces = pieces
         self.laneCount = laneCount
         self.laneWidth = laneWidth
         self.trackWidth = trackWidth
+        self.bridgeCenterProgress = bridgeCenterProgress
+        self.bridgeRampLength = bridgeRampLength
+        self.bridgeHeight = bridgeHeight
     }
 }
