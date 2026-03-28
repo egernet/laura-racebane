@@ -27,6 +27,8 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Racebane bruger lokalt netværk til multiplayer
+        INFOPLIST_KEY_NSBonjourServices: "_racebane._tcp"
 
   RacebaneTests:
     type: bundle.unit-test

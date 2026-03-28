@@ -47,8 +47,25 @@ struct MenuView: View {
                             GridItem(.flexible(), spacing: 16)
                         ], spacing: 16) {
                             ForEach(TrackCatalog.allTracks, id: \.name) { track in
-                                NavigationLink(value: track.name) {
-                                    TrackCard(track: track)
+                                VStack(spacing: 8) {
+                                    NavigationLink(value: track.name) {
+                                        TrackCard(track: track)
+                                    }
+                                    NavigationLink(value: "mp:\(track.name)") {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "wifi")
+                                                .font(.system(size: 11))
+                                            Text("Multiplayer")
+                                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                        }
+                                        .foregroundColor(.cyan)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.cyan.opacity(0.15))
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -83,7 +100,12 @@ struct MenuView: View {
                 PieceCatalogView()
             }
             .navigationDestination(for: String.self) { trackName in
-                if let track = TrackCatalog.allTracks.first(where: { $0.name == trackName }) {
+                if trackName.hasPrefix("mp:") {
+                    let name = String(trackName.dropFirst(3))
+                    if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
+                        LobbyView(trackDefinition: track)
+                    }
+                } else if let track = TrackCatalog.allTracks.first(where: { $0.name == trackName }) {
                     RaceContentView(trackDefinition: track)
                 }
             }
