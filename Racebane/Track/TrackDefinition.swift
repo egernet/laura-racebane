@@ -97,7 +97,8 @@ enum TrackSegment {
 }
 
 /// Komplet definition af en racerbane
-struct TrackDefinition {
+struct TrackDefinition: Identifiable {
+    var id: String { name }
     let name: String
     let pieces: [TrackPiece]
     let laneCount: Int

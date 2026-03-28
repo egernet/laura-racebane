@@ -6,6 +6,7 @@ struct MenuView: View {
     @State private var selectedTrack: TrackDefinition?
     @State private var showPieceCatalog = false
     @State private var showSettings = false
+    @State private var arTrack: TrackDefinition?
 
     var body: some View {
         NavigationStack {
@@ -52,20 +53,36 @@ struct MenuView: View {
                                     NavigationLink(value: track.name) {
                                         TrackCard(track: track)
                                     }
-                                    NavigationLink(value: "mp:\(track.name)") {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "wifi")
-                                                .font(.system(size: 11))
-                                            Text("Multiplayer")
-                                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    HStack(spacing: 8) {
+                                        NavigationLink(value: "mp:\(track.name)") {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "wifi")
+                                                    .font(.system(size: 11))
+                                                Text("Multi")
+                                                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                                            }
+                                            .foregroundColor(.cyan)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.15)))
                                         }
-                                        .foregroundColor(.cyan)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.cyan.opacity(0.15))
-                                        )
+
+                                        if ARSupport.isSupported {
+                                            Button {
+                                                arTrack = track
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arkit")
+                                                        .font(.system(size: 11))
+                                                    Text("AR")
+                                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                                }
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -90,6 +107,9 @@ struct MenuView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+            }
+            .fullScreenCover(item: $arTrack) { track in
+                ARRaceContentView(trackDefinition: track)
             }
             .navigationDestination(for: String.self) { trackName in
                 if trackName.hasPrefix("mp:") {

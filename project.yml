@@ -29,6 +29,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: Racebane bruger lokalt netværk til multiplayer
         INFOPLIST_KEY_NSBonjourServices: "_racebane._tcp"
+        INFOPLIST_KEY_NSCameraUsageDescription: Racebane bruger kameraet til AR-mode
 
   RacebaneTests:
     type: bundle.unit-test
