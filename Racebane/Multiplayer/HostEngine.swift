@@ -1,26 +1,35 @@
 import Foundation
 import MultipeerConnectivity
 
-/// Host-side spilmotor: modtager input, kører fysik, broadcaster state
+/// Host-side spilmotor: kører fysik for alle biler, broadcaster state
 class HostEngine {
     let session: SessionManager
     let gameEngine: GameEngine
-    private var playerPeerMap: [String: Int] = [:] // peerId -> carController index
+    private var peerCarIndex: [String: Int] = [:]
     private var broadcastTimer: Timer?
 
     init(session: SessionManager, gameEngine: GameEngine) {
         self.session = session
         self.gameEngine = gameEngine
-        setupMessageHandling()
+
+        session.onMessageReceived = { [weak self] message, peer in
+            self?.handleMessage(message, from: peer)
+        }
     }
 
-    /// Tildel en spiller til et car-controller index
-    func assignPlayer(_ peerId: String, carIndex: Int) {
-        playerPeerMap[peerId] = carIndex
+    /// Tildel remote peer til en bil
+    func assignPeer(_ peerId: String, carIndex: Int) {
+        peerCarIndex[peerId] = carIndex
     }
 
-    /// Start broadcasting af game state ~30 Hz
+    /// Start broadcasting state ~30Hz + send start-signal til clients
     func startBroadcasting() {
+        // Send start-besked til alle clients
+        let lobby = GameMessage.LobbyUpdate(
+            players: [], trackName: nil, totalLaps: gameEngine.gameState.totalLaps, isStarting: true
+        )
+        session.sendToAll(.lobbyUpdate(lobby), reliable: true)
+
         broadcastTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
             self?.broadcastState()
         }
@@ -31,56 +40,41 @@ class HostEngine {
         broadcastTimer = nil
     }
 
-    // MARK: - Private
-
-    private func setupMessageHandling() {
-        session.onMessageReceived = { [weak self] message, peer in
-            self?.handleMessage(message, from: peer)
-        }
-    }
-
     private func handleMessage(_ message: GameMessage, from peer: MCPeerID) {
-        switch message {
-        case .throttleInput(let input):
-            // Anvend throttle input på den rigtige bil
-            if let carIndex = playerPeerMap[input.playerId],
+        if case .throttleInput(let input) = message {
+            if let carIndex = peerCarIndex[input.playerId],
                carIndex < gameEngine.carControllers.count {
-                gameEngine.carControllers[carIndex].isThrottlePressed = input.isPressed
+                DispatchQueue.main.async {
+                    self.gameEngine.carControllers[carIndex].isThrottlePressed = input.isPressed
+                }
             }
-        default:
-            break
         }
     }
 
     private func broadcastState() {
-        let cars = gameEngine.carControllers.enumerated().map { (index, controller) in
-            GameMessage.CarState(
-                playerId: playerPeerMap.first(where: { $0.value == index })?.key ?? "host",
-                progress: controller.progress,
-                speed: controller.speed,
-                lapCount: controller.lapCount,
-                isDisabled: controller.flyOff.isDisabled,
-                lane: controller.lane
+        let gs = gameEngine.gameState
+        let cars = gameEngine.carControllers.enumerated().map { (index, c) in
+            let peerId = peerCarIndex.first(where: { $0.value == index })?.key ?? "host"
+            return GameMessage.CarState(
+                playerId: peerId,
+                progress: c.progress,
+                speed: c.speed,
+                lapCount: c.lapCount,
+                isDisabled: c.flyOff.isDisabled,
+                lane: c.lane
             )
         }
 
         let phaseInfo: GameMessage.PhaseInfo
-        let gs = gameEngine.gameState
         if let countdown = gs.countdownNumber {
-            phaseInfo = GameMessage.PhaseInfo(type: "countdown", countdown: countdown, winnerId: nil)
+            phaseInfo = .init(type: "countdown", countdown: countdown, winnerId: nil)
         } else if gs.isFinished {
-            let winnerId = gs.playerWon ? "host" : "ai"
-            phaseInfo = GameMessage.PhaseInfo(type: "finished", countdown: nil, winnerId: winnerId)
+            phaseInfo = .init(type: "finished", countdown: nil, winnerId: gs.playerWon ? "host" : nil)
         } else {
-            phaseInfo = GameMessage.PhaseInfo(type: "racing", countdown: nil, winnerId: nil)
+            phaseInfo = .init(type: "racing", countdown: nil, winnerId: nil)
         }
 
-        let update = GameMessage.StateUpdate(
-            cars: cars,
-            raceTime: gs.raceTime,
-            phase: phaseInfo
-        )
-
+        let update = GameMessage.StateUpdate(cars: cars, raceTime: gs.raceTime, phase: phaseInfo)
         session.sendToAll(.stateUpdate(update), reliable: false)
     }
 }
