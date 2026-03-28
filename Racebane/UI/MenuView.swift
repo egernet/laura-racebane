@@ -5,6 +5,7 @@ import SceneKit
 struct MenuView: View {
     @State private var selectedTrack: TrackDefinition?
     @State private var showPieceCatalog = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -72,32 +73,23 @@ struct MenuView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    // Banestykker-knap
-                    Button {
-                        showPieceCatalog = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "puzzlepiece.extension")
-                            Text("Banestykker")
+                    // Knapper i bunden
+                    HStack(spacing: 16) {
+                        menuButton(icon: "puzzlepiece.extension", text: "Banestykker") {
+                            showPieceCatalog = true
                         }
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white.opacity(0.15))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                        menuButton(icon: "gearshape", text: "Indstillinger") {
+                            showSettings = true
+                        }
                     }
                     .padding(.bottom, 30)
                 }
             }
             .sheet(isPresented: $showPieceCatalog) {
                 PieceCatalogView()
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .navigationDestination(for: String.self) { trackName in
                 if trackName.hasPrefix("mp:") {
@@ -109,6 +101,28 @@ struct MenuView: View {
                     RaceContentView(trackDefinition: track)
                 }
             }
+        }
+    }
+
+    private func menuButton(icon: String, text: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                Text(text)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.white.opacity(0.15))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                    )
+            )
         }
     }
 }

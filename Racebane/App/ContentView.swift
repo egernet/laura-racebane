@@ -81,16 +81,34 @@ struct RaceContentView: View {
         }
         .onChange(of: isThrottlePressed) { newValue in
             playerController?.isThrottlePressed = newValue
+            if newValue { HapticManager.shared.throttlePress() }
         }
         .onChange(of: gameState.isRacing) { isRacing in
             if isRacing {
                 showGoText = true
+                HapticManager.shared.go()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     showGoText = false
                 }
             }
         }
+        .onChange(of: gameState.countdownNumber) { _ in
+            HapticManager.shared.countdownTick()
+        }
+        .onChange(of: gameState.playerLap) { _ in
+            HapticManager.shared.lapComplete()
+        }
+        .onChange(of: isPenalty) { penalty in
+            if penalty { HapticManager.shared.flyOff() }
+        }
+        .onChange(of: gameState.isFinished) { finished in
+            if finished { HapticManager.shared.raceFinished(won: gameState.playerWon) }
+        }
     }
+
+    @AppStorage("difficulty") private var difficulty = 1
+    @AppStorage("totalLaps") private var totalLaps = 3
+    @AppStorage("selectedCarId") private var selectedCarId = 0
 
     private func setupGame() {
         let scene = RaceScene(trackDefinition: trackDefinition)
@@ -98,11 +116,13 @@ struct RaceContentView: View {
         let state = gameState
         let engine = GameEngine(raceScene: scene, cameraRig: cam, gameState: state)
 
-        // Spillerens bil (pink, spor 0)
-        let player = engine.addCar(color: .systemPink, lane: 0)
+        // Spillerens bil fra settings
+        let carConfig = CarConfig.allCars.first(where: { $0.id == selectedCarId }) ?? CarConfig.allCars[0]
+        let player = engine.addCar(color: carConfig.color, lane: 0)
 
-        // AI-modstander (blå, spor 1)
-        _ = engine.addAI(color: .systemBlue, lane: 1, difficulty: 0.7)
+        // AI-modstander
+        let aiDifficulty: Float = [0.55, 0.7, 0.85][min(difficulty, 2)]
+        _ = engine.addAI(color: .systemBlue, lane: 1, difficulty: aiDifficulty)
 
         engine.onUpdate = { [weak player] in
             if let p = player {
@@ -121,8 +141,7 @@ struct RaceContentView: View {
         self.playerController = player
         self.gameEngine = engine
 
-        // Start nedtælling
-        engine.startRace(laps: 3)
+        engine.startRace(laps: totalLaps)
     }
 
     private func restartRace() {
