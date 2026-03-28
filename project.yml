@@ -14,7 +14,7 @@ targets:
       - path: Racebane
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dk.laura.Racebane
+        PRODUCT_BUNDLE_IDENTIFIER: dk.egernet.laura.Racebane
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "5.0"
