@@ -78,7 +78,7 @@ struct ContentView: View {
             }
         }
 
-        cameraRig.setupChase()
+        cameraRig.setupOverhead(trackPath: raceScene.trackPath)
 
         self.playerController = player
         self.gameEngine = engine

@@ -50,11 +50,6 @@ class GameEngine: NSObject, SCNSceneRendererDelegate {
             controller.update(deltaTime: dt)
         }
 
-        // Opdater kamera (følg første bil)
-        if let playerCar = carControllers.first {
-            cameraRig.updateChase(target: playerCar.carNode, trackPoint: playerCar.trackPath.pointAt(progress: playerCar.progress))
-        }
-
         // Notificér UI
         DispatchQueue.main.async { [weak self] in
             self?.onUpdate?()
