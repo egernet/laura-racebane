@@ -52,6 +52,7 @@ enum GameMessage: Codable {
         let trackName: String?
         let totalLaps: Int
         let isStarting: Bool
+        let isAR: Bool
     }
 
     struct PlayerInfo: Codable {

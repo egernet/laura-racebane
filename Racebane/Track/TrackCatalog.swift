@@ -5,6 +5,10 @@ import Foundation
 /// Alle baner er geometrisk verificeret til at lukke.
 struct TrackCatalog {
 
+    static func track(named name: String) -> TrackDefinition? {
+        allTracks.first { $0.name == name }
+    }
+
     static let allTracks: [TrackDefinition] = [
         beginnerOval,
         figurEight,

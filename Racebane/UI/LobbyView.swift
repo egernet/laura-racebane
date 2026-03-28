@@ -2,7 +2,7 @@ import SwiftUI
 import SceneKit
 import MultipeerConnectivity
 
-/// Lobby til multiplayer - find og forbind med andre spillere
+/// Lobby til multiplayer - host venter på spillere
 struct LobbyView: View {
     let trackDefinition: TrackDefinition
     let isAR: Bool
@@ -13,8 +13,6 @@ struct LobbyView: View {
         self.isAR = isAR
         self._session = StateObject(wrappedValue: SessionManager())
     }
-    @State private var isHosting = false
-    @State private var isJoining = false
     @State private var startGame = false
     @Environment(\.dismiss) var dismiss
 
@@ -39,14 +37,7 @@ struct LobbyView: View {
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
 
-                if !isHosting && !isJoining {
-                    // Vælg rolle
-                    chooseRoleSection
-                } else if isHosting {
-                    hostSection
-                } else {
-                    joinSection
-                }
+                hostSection
 
                 Spacer()
 
@@ -61,60 +52,16 @@ struct LobbyView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            // Lyt efter start-signal fra host (kun relevant for client)
-            session.onMessageReceived = { message, _ in
-                if case .lobbyUpdate(let lobby) = message, lobby.isStarting {
-                    DispatchQueue.main.async {
-                        startGame = true
-                    }
-                }
-            }
+            session.startHosting(trackName: trackDefinition.name, isAR: isAR)
         }
         .fullScreenCover(isPresented: $startGame) {
             MultiplayerRaceView(
                 trackDefinition: trackDefinition,
                 session: session,
-                isHost: isHosting,
+                isHost: true,
                 isAR: isAR
             )
         }
-    }
-
-    // MARK: - Sections
-
-    private var chooseRoleSection: some View {
-        VStack(spacing: 16) {
-            Button {
-                session.startHosting()
-                isHosting = true
-            } label: {
-                HStack {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                    Text("Opret spil")
-                }
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue))
-            }
-
-            Button {
-                session.startBrowsing()
-                isJoining = true
-            } label: {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                    Text("Find spil")
-                }
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.green))
-            }
-        }
-        .padding(.horizontal, 40)
     }
 
     private var hostSection: some View {
@@ -123,7 +70,12 @@ struct LobbyView: View {
                 .font(.system(size: 18, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.7))
 
-            // Forbundne spillere
+            if session.connectedPeers.isEmpty {
+                ProgressView()
+                    .tint(.white)
+                    .padding()
+            }
+
             ForEach(session.connectedPeers, id: \.displayName) { peer in
                 HStack {
                     Image(systemName: "person.fill")
@@ -140,6 +92,10 @@ struct LobbyView: View {
 
             if !session.connectedPeers.isEmpty {
                 Button {
+                    let update = GameMessage.LobbyUpdate(
+                        players: [], trackName: trackDefinition.name,
+                        totalLaps: 3, isStarting: true, isAR: isAR)
+                    session.sendToAll(.lobbyUpdate(update))
                     startGame = true
                 } label: {
                     Text("START RACE!")
@@ -149,45 +105,6 @@ struct LobbyView: View {
                         .padding(.vertical, 16)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.red))
                 }
-            }
-        }
-        .padding(.horizontal, 30)
-    }
-
-    private var joinSection: some View {
-        VStack(spacing: 16) {
-            Text("Søger efter spil...")
-                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
-
-            if session.discoveredHosts.isEmpty {
-                ProgressView()
-                    .tint(.white)
-                    .padding()
-            }
-
-            ForEach(session.discoveredHosts, id: \.displayName) { host in
-                Button {
-                    session.joinHost(host)
-                } label: {
-                    HStack {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
-                            .foregroundColor(.blue)
-                        Text(host.displayName)
-                            .foregroundColor(.white)
-                        Spacer()
-                        Text("Forbind")
-                            .foregroundColor(.blue)
-                    }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.1)))
-                }
-            }
-
-            if session.isConnected {
-                Text("Forbundet! Venter på at host starter...")
-                    .foregroundColor(.green)
-                    .padding()
             }
         }
         .padding(.horizontal, 30)

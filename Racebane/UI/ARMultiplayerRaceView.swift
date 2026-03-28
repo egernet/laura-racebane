@@ -4,12 +4,15 @@ import SceneKit
 
 // MARK: - AR Host Race View
 
+private enum ARHostPhase { case placement, waiting, racing }
+
 /// AR Host: kører GameEngine-fysik og broadcaster state. Banen placeres i AR.
 struct ARHostRaceView: View {
     let trackDefinition: TrackDefinition
     let session: SessionManager
 
     @StateObject private var gameState = GameState()
+    @State private var hostPhase: ARHostPhase = .placement
     @State private var isTrackPlaced = false
     @State private var trackScale: Float = 0.05
     @State private var gameEngine: GameEngine?
@@ -37,18 +40,22 @@ struct ARHostRaceView: View {
             )
             .ignoresSafeArea()
 
-            if !isTrackPlaced {
+            if hostPhase == .placement {
                 arPlacementOverlay
             }
 
-            if isTrackPlaced && gameState.isRacing {
+            if hostPhase == .waiting {
+                arWaitingOverlay
+            }
+
+            if hostPhase == .racing && gameState.isRacing {
                 HUDView(speed: speed, maxSpeed: 24.0, lapCount: lapCount,
                         totalLaps: gameState.totalLaps, raceTime: gameState.raceTime,
                         dangerLevel: dangerLevel, isPenalty: isPenalty,
                         penaltyProgress: penaltyProgress)
             }
 
-            if isTrackPlaced {
+            if hostPhase == .racing {
                 if let countdown = gameState.countdownNumber {
                     CountdownView(number: countdown, isRacing: false)
                 } else if showGoText {
@@ -56,7 +63,7 @@ struct ARHostRaceView: View {
                 }
             }
 
-            if isTrackPlaced && gameState.isRacing {
+            if hostPhase == .racing && gameState.isRacing {
                 VStack {
                     Spacer()
                     HStack {
@@ -77,6 +84,9 @@ struct ARHostRaceView: View {
             arCloseButton { session.disconnect(); dismiss() }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            session.startHosting(trackName: trackDefinition.name, isAR: true)
+        }
         .onChange(of: isThrottlePressed) { newValue in
             playerController?.isThrottlePressed = newValue
             if newValue { HapticManager.shared.throttlePress() }
@@ -92,6 +102,55 @@ struct ARHostRaceView: View {
         .onChange(of: isPenalty) { p in if p { HapticManager.shared.flyOff() } }
         .onChange(of: gameState.isFinished) { f in
             if f { HapticManager.shared.raceFinished(won: gameState.playerWon) }
+        }
+    }
+
+    private var arWaitingOverlay: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            VStack(spacing: 14) {
+                Text("Venter på spillere...")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+
+                if session.connectedPeers.isEmpty {
+                    ProgressView().tint(.white)
+                } else {
+                    ForEach(session.connectedPeers, id: \.displayName) { peer in
+                        HStack {
+                            Image(systemName: "person.fill").foregroundColor(.green)
+                            Text(peer.displayName).foregroundColor(.white)
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        }
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.15)))
+                    }
+                }
+
+                if !session.connectedPeers.isEmpty {
+                    Button {
+                        let update = GameMessage.LobbyUpdate(
+                            players: [], trackName: trackDefinition.name,
+                            totalLaps: 3, isStarting: true, isAR: true)
+                        session.sendToAll(.lobbyUpdate(update))
+                        gameEngine?.startRace(laps: 3)
+                        hostEngine?.startBroadcasting()
+                        hostPhase = .racing
+                    } label: {
+                        Text("START RACE!")
+                            .font(.system(size: 20, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.red))
+                    }
+                }
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Color.black.opacity(0.7)))
+            .padding(.horizontal, 30)
+            .padding(.bottom, 100)
         }
     }
 
@@ -133,8 +192,7 @@ struct ARHostRaceView: View {
         self.gameEngine = engine
         self.hostEngine = host
 
-        engine.startRace(laps: 3)
-        host.startBroadcasting()
+        hostPhase = .waiting
     }
 }
 
@@ -245,6 +303,18 @@ struct ARClientRaceView: View {
         clientEngine.carNodes[session.myId] = clientCar
 
         addARLighting(to: scene)
+    }
+}
+
+// MARK: - AR Host Entry (bruges fra menuen)
+
+/// Wrapper der giver ARHostRaceView sin egen SessionManager
+struct ARMultiplayerHostEntry: View {
+    let trackDefinition: TrackDefinition
+    @StateObject private var session = SessionManager()
+
+    var body: some View {
+        ARHostRaceView(trackDefinition: trackDefinition, session: session)
     }
 }
 

@@ -4,12 +4,18 @@ import MultipeerConnectivity
 /// Wrapper rundt MultipeerConnectivity for lokal multiplayer
 class SessionManager: NSObject, ObservableObject {
 
+    struct DiscoveredGame {
+        let peer: MCPeerID
+        let trackName: String
+        let isAR: Bool
+    }
+
     // MARK: - Published state
 
     @Published var isHost: Bool = false
     @Published var connectedPeers: [MCPeerID] = []
     @Published var isConnected: Bool = false
-    @Published var discoveredHosts: [MCPeerID] = []
+    @Published var discoveredGames: [DiscoveredGame] = []
 
     // MARK: - Callbacks
 
@@ -38,10 +44,11 @@ class SessionManager: NSObject, ObservableObject {
 
     // MARK: - Host
 
-    /// Start som host (advertiser)
-    func startHosting() {
+    /// Start som host (advertiser) med baneinformation
+    func startHosting(trackName: String, isAR: Bool) {
         isHost = true
-        advertiser = MCNearbyServiceAdvertiser(peer: myPeerId, discoveryInfo: nil, serviceType: serviceType)
+        let info = ["trackName": trackName, "isAR": isAR ? "1" : "0"]
+        advertiser = MCNearbyServiceAdvertiser(peer: myPeerId, discoveryInfo: info, serviceType: serviceType)
         advertiser?.delegate = self
         advertiser?.startAdvertisingPeer()
     }
@@ -106,7 +113,7 @@ class SessionManager: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.connectedPeers = []
             self.isConnected = false
-            self.discoveredHosts = []
+            self.discoveredGames = []
         }
     }
 }
@@ -160,16 +167,19 @@ extension SessionManager: MCNearbyServiceAdvertiserDelegate {
 
 extension SessionManager: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
+        let trackName = info?["trackName"] ?? "Ukendt"
+        let isAR = info?["isAR"] == "1"
+        let game = DiscoveredGame(peer: peerID, trackName: trackName, isAR: isAR)
         DispatchQueue.main.async {
-            if !self.discoveredHosts.contains(peerID) {
-                self.discoveredHosts.append(peerID)
+            if !self.discoveredGames.contains(where: { $0.peer == peerID }) {
+                self.discoveredGames.append(game)
             }
         }
     }
 
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
         DispatchQueue.main.async {
-            self.discoveredHosts.removeAll { $0 == peerID }
+            self.discoveredGames.removeAll { $0.peer == peerID }
         }
     }
 }

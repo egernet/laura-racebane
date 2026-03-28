@@ -7,6 +7,8 @@ struct MenuView: View {
     @State private var showPieceCatalog = false
     @State private var showSettings = false
     @State private var arTrack: TrackDefinition?
+    @State private var showJoinNormal = false
+    @State private var showJoinAR = false
 
     var body: some View {
         NavigationStack {
@@ -106,12 +108,24 @@ struct MenuView: View {
                     }
 
                     // Knapper i bunden
-                    HStack(spacing: 16) {
-                        menuButton(icon: "puzzlepiece.extension", text: "Banestykker") {
-                            showPieceCatalog = true
+                    VStack(spacing: 12) {
+                        HStack(spacing: 16) {
+                            menuButton(icon: "puzzlepiece.extension", text: "Banestykker") {
+                                showPieceCatalog = true
+                            }
+                            menuButton(icon: "gearshape", text: "Indstillinger") {
+                                showSettings = true
+                            }
                         }
-                        menuButton(icon: "gearshape", text: "Indstillinger") {
-                            showSettings = true
+                        HStack(spacing: 16) {
+                            menuButton(icon: "wifi", text: "Join Normal") {
+                                showJoinNormal = true
+                            }
+                            if ARSupport.isSupported {
+                                menuButton(icon: "arkit", text: "Join AR") {
+                                    showJoinAR = true
+                                }
+                            }
                         }
                     }
                     .padding(.bottom, 30)
@@ -123,6 +137,12 @@ struct MenuView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
+            .sheet(isPresented: $showJoinNormal) {
+                JoinView(isAR: false)
+            }
+            .sheet(isPresented: $showJoinAR) {
+                JoinView(isAR: true)
+            }
             .fullScreenCover(item: $arTrack) { track in
                 ARRaceContentView(trackDefinition: track)
             }
@@ -130,7 +150,7 @@ struct MenuView: View {
                 if trackName.hasPrefix("ar-mp:") {
                     let name = String(trackName.dropFirst(6))
                     if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
-                        LobbyView(trackDefinition: track, isAR: true)
+                        ARMultiplayerHostEntry(trackDefinition: track)
                     }
                 } else if trackName.hasPrefix("mp:") {
                     let name = String(trackName.dropFirst(3))

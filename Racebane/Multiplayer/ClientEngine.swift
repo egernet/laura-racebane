@@ -17,6 +17,7 @@ class ClientEngine: ObservableObject {
 
     var carNodes: [String: CarNode] = [:]
     var trackPath: TrackPath?
+    private var prevDisabledStates: [String: Bool] = [:]
 
     init(session: SessionManager, playerId: String) {
         self.session = session
@@ -53,7 +54,14 @@ class ClientEngine: ObservableObject {
             // Opdater bilpositioner
             guard let path = trackPath else { return }
             for carState in update.cars {
+                let wasDisabled = prevDisabledStates[carState.playerId] ?? false
                 if let node = carNodes[carState.playerId] {
+                    if !wasDisabled && carState.isDisabled {
+                        node.playFlyOffAnimation()
+                    } else if wasDisabled && !carState.isDisabled {
+                        node.resetFromFlyOff()
+                    }
+
                     let point = path.pointAt(progress: carState.progress)
                     let laneOffset = SCNFloat(Float(carState.lane) * 0.4 - 0.2)
                     let pos = point.position + point.right * laneOffset
@@ -69,6 +77,7 @@ class ClientEngine: ObservableObject {
                     node.eulerAngles.y = Float(angle) + .pi
                     node.opacity = carState.isDisabled ? 0.4 : 1.0
                 }
+                prevDisabledStates[carState.playerId] = carState.isDisabled
 
                 // Gem spillerens egne data til HUD
                 if carState.playerId == playerId {

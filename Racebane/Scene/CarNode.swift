@@ -73,4 +73,20 @@ class CarNode: SCNNode {
         headlight.eulerAngles.x = -0.1
         addChildNode(headlight)
     }
+
+    // MARK: - Animationer
+
+    func playFlyOffAnimation() {
+        let tumble = SCNAction.rotateBy(x: .pi * 4, y: .pi * 2, z: .pi, duration: 0.6)
+        let rise = SCNAction.moveBy(x: 0, y: 0.5, z: 0, duration: 0.3)
+        let fall = SCNAction.moveBy(x: 0, y: -0.5, z: 0, duration: 0.3)
+        let arc = SCNAction.sequence([rise, fall])
+        runAction(SCNAction.group([tumble, arc]), forKey: "flyOff")
+    }
+
+    func resetFromFlyOff() {
+        removeAction(forKey: "flyOff")
+        eulerAngles = SCNVector3Zero
+        opacity = 1.0
+    }
 }

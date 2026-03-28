@@ -26,7 +26,7 @@ class HostEngine {
     func startBroadcasting() {
         // Send start-besked til alle clients
         let lobby = GameMessage.LobbyUpdate(
-            players: [], trackName: nil, totalLaps: gameEngine.gameState.totalLaps, isStarting: true
+            players: [], trackName: nil, totalLaps: gameEngine.gameState.totalLaps, isStarting: true, isAR: false
         )
         session.sendToAll(.lobbyUpdate(lobby), reliable: true)
 
