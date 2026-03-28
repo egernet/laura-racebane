@@ -5,6 +5,7 @@ import SceneKit
 struct RaceView: UIViewRepresentable {
     let raceScene: RaceScene
     let cameraRig: CameraRig
+    let gameEngine: GameEngine
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
@@ -14,6 +15,8 @@ struct RaceView: UIViewRepresentable {
         scnView.antialiasingMode = .multisampling4X
         scnView.allowsCameraControl = false
         scnView.showsStatistics = false
+        scnView.delegate = gameEngine
+        scnView.isPlaying = true
 
         // Tilføj kamera til scenen
         raceScene.scene.rootNode.addChildNode(cameraRig.cameraNode)
@@ -21,7 +24,5 @@ struct RaceView: UIViewRepresentable {
         return scnView
     }
 
-    func updateUIView(_ uiView: SCNView, context: Context) {
-        // Opdatering sker via GameEngine i senere faser
-    }
+    func updateUIView(_ uiView: SCNView, context: Context) {}
 }
