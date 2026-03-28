@@ -62,20 +62,16 @@ class ClientEngine: ObservableObject {
                         node.resetFromFlyOff()
                     }
 
-                    let point = path.pointAt(progress: carState.progress)
-                    let laneOffset = SCNFloat(Float(carState.lane) * 0.4 - 0.2)
-                    let pos = point.position + point.right * laneOffset
-
-                    // Interpoler position
-                    let t: SCNFloat = 0.3
-                    node.position = SCNVector3(
-                        node.position.x + (pos.x - node.position.x) * t,
-                        0,
-                        node.position.z + (pos.z - node.position.z) * t
-                    )
-                    let angle = atan2(point.tangent.x, point.tangent.z)
-                    node.eulerAngles.y = Float(angle) + .pi
-                    node.opacity = carState.isDisabled ? 0.4 : 1.0
+                    // Sæt position og rotation direkte (ingen lag)
+                    // Spring over mens bilen er i fly-off animation
+                    if !carState.isDisabled {
+                        let point = path.pointAt(progress: carState.progress)
+                        let laneOffset = SCNFloat(Float(carState.lane) * 0.4 - 0.2)
+                        let pos = point.position + point.right * laneOffset
+                        node.position = SCNVector3(pos.x, 0, pos.z)
+                        let angle = atan2(point.tangent.x, point.tangent.z)
+                        node.eulerAngles.y = Float(angle) + .pi
+                    }
                 }
                 prevDisabledStates[carState.playerId] = carState.isDisabled
 

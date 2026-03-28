@@ -224,6 +224,7 @@ struct ARClientRaceView: View {
                 isTrackPlaced: $isTrackPlaced,
                 trackScale: $trackScale,
                 gameEngine: $nullEngine,
+                autoPlace: true,
                 onSceneReady: { scene, trackPath, trackNode in
                     setupARClient(scene: scene, trackPath: trackPath, trackNode: trackNode)
                 }

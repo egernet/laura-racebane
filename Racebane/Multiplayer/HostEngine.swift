@@ -15,9 +15,19 @@ class HostEngine {
         session.onMessageReceived = { [weak self] message, peer in
             self?.handleMessage(message, from: peer)
         }
+
+        // Tildel automatisk nye peers til næste ledige bil-index (> 0)
+        session.onPeerConnected = { [weak self] peer in
+            guard let self = self else { return }
+            if self.peerCarIndex[peer.displayName] == nil {
+                let used = Set(self.peerCarIndex.values)
+                let next = (1...).first { !used.contains($0) } ?? 1
+                self.peerCarIndex[peer.displayName] = next
+            }
+        }
     }
 
-    /// Tildel remote peer til en bil
+    /// Tildel remote peer til en bil (bruges til forhåndstilmeldte peers)
     func assignPeer(_ peerId: String, carIndex: Int) {
         peerCarIndex[peerId] = carIndex
     }

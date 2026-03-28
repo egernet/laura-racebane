@@ -140,7 +140,7 @@ struct MenuView: View {
             .sheet(isPresented: $showJoinNormal) {
                 JoinView(isAR: false)
             }
-            .sheet(isPresented: $showJoinAR) {
+            .fullScreenCover(isPresented: $showJoinAR) {
                 JoinView(isAR: true)
             }
             .fullScreenCover(item: $arTrack) { track in

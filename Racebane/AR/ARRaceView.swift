@@ -8,6 +8,7 @@ struct ARRaceView: UIViewRepresentable {
     @Binding var isTrackPlaced: Bool
     @Binding var trackScale: Float
     @Binding var gameEngine: GameEngine?
+    var autoPlace: Bool = false   // Auto-placer ved første flade (til client)
     let onSceneReady: (SCNScene, TrackPath, SCNNode) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -49,14 +50,34 @@ struct ARRaceView: UIViewRepresentable {
         private var meshNodes: [UUID: SCNNode] = [:]
         private var trackNode: SCNNode?
         private var trackAnchor: ARAnchor?
+        private var autoPlaceAttempted = false
 
         init(_ parent: ARRaceView) {
             self.parent = parent
         }
 
-        // Vis detekterede flader som halvgennemsigtige planer
         func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
             parent.gameEngine?.renderer(renderer, updateAtTime: time)
+
+            // Auto-placer ved første frame (client-tilstand)
+            if parent.autoPlace && !autoPlaceAttempted && !parent.isTrackPlaced,
+               let arView = arView,
+               let frame = arView.session.currentFrame,
+               case .normal = frame.camera.trackingState {
+                autoPlaceAttempted = true
+                let cam = frame.camera.transform
+                var placement = matrix_identity_float4x4
+                // Placer 0.8m foran kameraet og 0.5m nedenunder
+                placement.columns.3 = simd_float4(
+                    cam.columns.3.x - cam.columns.2.x * 0.8,
+                    cam.columns.3.y - 0.5,
+                    cam.columns.3.z - cam.columns.2.z * 0.8,
+                    1
+                )
+                DispatchQueue.main.async {
+                    self.placeTrackAt(transform: placement, in: arView)
+                }
+            }
         }
 
         func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
@@ -183,7 +204,15 @@ struct ARRaceView: UIViewRepresentable {
             }
         }
 
+        private func placeTrackAt(transform: simd_float4x4, in arView: ARSCNView) {
+            placeTrackWithMatrix(SCNMatrix4(transform), in: arView)
+        }
+
         private func placeTrack(at result: ARRaycastResult, in arView: ARSCNView) {
+            placeTrackWithMatrix(SCNMatrix4(result.worldTransform), in: arView)
+        }
+
+        private func placeTrackWithMatrix(_ matrix: SCNMatrix4, in arView: ARSCNView) {
             // Fjern flade-indikatorer
             for (_, node) in planeNodes {
                 node.removeFromParentNode()
@@ -213,7 +242,7 @@ struct ARRaceView: UIViewRepresentable {
             // Wrapper node ved AR-positionen
             let wrapper = SCNNode()
             wrapper.addChildNode(trackBuild)
-            wrapper.transform = SCNMatrix4(result.worldTransform)
+            wrapper.transform = matrix
 
             arView.scene.rootNode.addChildNode(wrapper)
 
