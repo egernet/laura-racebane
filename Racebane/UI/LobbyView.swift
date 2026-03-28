@@ -11,6 +11,7 @@ struct LobbyView: View {
     init(trackDefinition: TrackDefinition, isAR: Bool = false) {
         self.trackDefinition = trackDefinition
         self.isAR = isAR
+        self._session = StateObject(wrappedValue: SessionManager())
     }
     @State private var isHosting = false
     @State private var isJoining = false
