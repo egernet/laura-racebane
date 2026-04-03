@@ -99,6 +99,7 @@ struct RaceContentView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
+            SoundManager.shared.stopMusic()
             setupGame()
         }
         .onChange(of: isThrottlePressed) { newValue in

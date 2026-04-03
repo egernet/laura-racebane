@@ -146,6 +146,9 @@ struct ARRaceContentView: View {
                 SoundManager.shared.stopEngine()
             }
         }
+        .onAppear {
+            SoundManager.shared.stopMusic()
+        }
         .onDisappear {
             SoundManager.shared.stopEngine()
         }

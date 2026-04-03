@@ -146,6 +146,12 @@ struct MenuView: View {
             .fullScreenCover(item: $arTrack) { track in
                 ARRaceContentView(trackDefinition: track)
             }
+            .onAppear {
+                SoundManager.shared.startMusic()
+            }
+            .onDisappear {
+                SoundManager.shared.stopMusic()
+            }
             .navigationDestination(for: String.self) { trackName in
                 if trackName.hasPrefix("ar-mp:") {
                     let name = String(trackName.dropFirst(6))

@@ -25,6 +25,13 @@ class SoundManager {
     private var activeEffect: SoundEffect?
     private var effectTime: Float = 0
 
+    // MARK: - Music state
+
+    private var musicNode: AVAudioSourceNode!
+    private var musicPlaying: Bool = false
+    private var musicAmplitude: Float = 0
+    private var musicTime: Float = 0
+
     // MARK: - Init
 
     private init() {
@@ -80,13 +87,40 @@ class SoundManager {
             return noErr
         }
 
+        musicNode = AVAudioSourceNode(format: format) { [weak self] _, _, frameCount, bufferList -> OSStatus in
+            guard let self = self else { return noErr }
+            let ablPointer = UnsafeMutableAudioBufferListPointer(bufferList)
+            let buf = ablPointer[0]
+            let frames = Int(frameCount)
+            guard let data = buf.mData?.assumingMemoryBound(to: Float.self) else { return noErr }
+
+            let playing = self.musicPlaying && self.isEnabled
+            let targetAmp: Float = playing ? 0.18 : 0
+
+            for i in 0..<frames {
+                self.musicAmplitude += (targetAmp - self.musicAmplitude) * 0.0005
+
+                data[i] = MenuMusic.sample(at: self.musicTime, sampleRate: self.sampleRate) * self.musicAmplitude
+                self.musicTime += 1.0 / self.sampleRate
+
+                // Loop melodien
+                if self.musicTime >= MenuMusic.totalDuration {
+                    self.musicTime = 0
+                }
+            }
+            return noErr
+        }
+
         audioEngine.attach(engineNode)
         audioEngine.attach(effectNode)
+        audioEngine.attach(musicNode)
         audioEngine.connect(engineNode, to: audioEngine.mainMixerNode, format: format)
         audioEngine.connect(effectNode, to: audioEngine.mainMixerNode, format: format)
+        audioEngine.connect(musicNode, to: audioEngine.mainMixerNode, format: format)
 
         engineNode.volume = 0.25
         effectNode.volume = 0.4
+        musicNode.volume = 0.5
 
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -109,6 +143,19 @@ class SoundManager {
 
     func updateEngineSpeed(_ normalizedSpeed: Float) {
         enginePitch = max(0, min(1, normalizedSpeed))
+    }
+
+    // MARK: - Menu musik
+
+    func startMusic() {
+        musicPlaying = true
+        if !audioEngine.isRunning {
+            try? audioEngine.start()
+        }
+    }
+
+    func stopMusic() {
+        musicPlaying = false
     }
 
     // MARK: - One-shot effekter
@@ -141,6 +188,89 @@ class SoundManager {
 }
 
 // MARK: - Sound Effect Synthesis
+
+// MARK: - Menu Music Synthesis
+
+/// Glad, loopende menu-melodi syntetiseret med sinus-bølger
+enum MenuMusic {
+    // Noder: (frekvens i Hz, startbeat, varighed i beats)
+    // Melodi i C-dur, 140 BPM, 8 takter
+    private static let bpm: Float = 140
+    private static let beatDuration: Float = 60.0 / bpm
+
+    // Melodi-stemme (glad racing-tune)
+    private static let melody: [(freq: Float, beat: Float, dur: Float)] = [
+        // Takt 1-2: Åbning
+        (523, 0, 0.5),  (659, 0.5, 0.5),  (784, 1, 0.5),  (1047, 1.5, 1),
+        (880, 2.5, 0.5), (784, 3, 0.5),    (659, 3.5, 0.5),
+        // Takt 3-4
+        (698, 4, 0.75),  (659, 4.75, 0.25), (587, 5, 0.5),  (523, 5.5, 0.5),
+        (587, 6, 0.5),   (659, 6.5, 0.5),   (698, 7, 1),
+        // Takt 5-6: Gentagelse med variation
+        (523, 8, 0.5),  (659, 8.5, 0.5),  (784, 9, 0.5),  (1047, 9.5, 0.5),
+        (1175, 10, 0.5), (1047, 10.5, 0.5), (880, 11, 1),
+        // Takt 7-8: Afslutning der looper
+        (784, 12, 0.5), (880, 12.5, 0.5), (784, 13, 0.5), (659, 13.5, 0.5),
+        (587, 14, 0.5), (523, 14.5, 0.5), (494, 15, 0.75), (523, 15.75, 0.25),
+    ]
+
+    // Bas-stemme (simpel grund-tone)
+    private static let bass: [(freq: Float, beat: Float, dur: Float)] = [
+        (131, 0, 2), (131, 2, 2),       // C
+        (147, 4, 2), (131, 6, 2),       // D, C
+        (131, 8, 2), (165, 10, 2),      // C, E
+        (147, 12, 2), (131, 14, 2),     // D, C
+    ]
+
+    static let totalDuration: Float = 16 * beatDuration
+
+    static func sample(at time: Float, sampleRate: Float) -> Float {
+        var output: Float = 0
+
+        // Melodi: blød sinus med overtone
+        for note in melody {
+            let noteStart = note.beat * beatDuration
+            let noteDur = note.dur * beatDuration
+            let noteEnd = noteStart + noteDur
+
+            if time >= noteStart && time < noteEnd {
+                let t = time - noteStart
+                // Attack-decay envelope
+                let attack: Float = min(t / 0.02, 1.0)
+                let release: Float = t > (noteDur - 0.03) ? max(0, (noteEnd - time) / 0.03) : 1.0
+                let env = attack * release
+
+                // Sinus + svag overtone for fylde
+                let fundamental = sin(t * note.freq * 2 * .pi)
+                let overtone = sin(t * note.freq * 2 * 2 * .pi) * 0.2
+                output += (fundamental + overtone) * env * 0.35
+            }
+        }
+
+        // Bas: blød sinus
+        for note in bass {
+            let noteStart = note.beat * beatDuration
+            let noteDur = note.dur * beatDuration
+            let noteEnd = noteStart + noteDur
+
+            if time >= noteStart && time < noteEnd {
+                let t = time - noteStart
+                let attack: Float = min(t / 0.03, 1.0)
+                let release: Float = t > (noteDur - 0.05) ? max(0, (noteEnd - time) / 0.05) : 1.0
+                output += sin(t * note.freq * 2 * .pi) * attack * release * 0.25
+            }
+        }
+
+        // Simpel percussion: kick på hver beat
+        let beatPos = time.truncatingRemainder(dividingBy: beatDuration)
+        if beatPos < 0.04 {
+            let kickEnv = exp(-beatPos * 80)
+            output += sin(beatPos * 120 * 2 * .pi) * kickEnv * 0.2
+        }
+
+        return output
+    }
+}
 
 enum SoundEffect {
     case countdownBeep
