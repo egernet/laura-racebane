@@ -164,6 +164,13 @@ struct ARHostRaceView: View {
         let remoteCar = engine.addCar(color: .systemGreen, lane: 1)
         _ = remoteCar // styres via HostEngine
 
+        engine.playerCarIndex = 0
+        gameState.playerIndex = 0
+        gameState.carResults = [
+            CarRaceResult(id: 0, name: "Dig", color: .systemPink),
+            CarRaceResult(id: 1, name: "Modstander", color: .systemGreen),
+        ]
+
         // Flyt biler fra dummy-scene til AR-bane-noden
         for controller in engine.carControllers {
             controller.carNode.removeFromParentNode()

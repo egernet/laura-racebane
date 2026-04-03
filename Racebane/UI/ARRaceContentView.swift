@@ -22,6 +22,7 @@ struct ARRaceContentView: View {
 
     @AppStorage("difficulty") private var difficulty = 1
     @AppStorage("totalLaps") private var totalLaps = 3
+    @AppStorage("aiCount") private var aiCount = 1
     @AppStorage("selectedCarId") private var selectedCarId = 0
 
     var body: some View {
@@ -163,9 +164,22 @@ struct ARRaceContentView: View {
 
         let carConfig = CarConfig.allCars.first(where: { $0.id == selectedCarId }) ?? CarConfig.allCars[0]
         let player = engine.addCar(color: carConfig.color, lane: 0)
+        engine.playerCarIndex = 0
+        gameState.playerIndex = 0
 
         let aiDifficulty: Float = [0.55, 0.7, 0.85][min(difficulty, 2)]
-        _ = engine.addAI(color: .systemBlue, lane: 1, difficulty: aiDifficulty)
+        let aiColors: [UIColor] = [.systemBlue, .systemGreen, .systemOrange]
+        let aiNames = ["Blå Lyn", "Grøn Pil", "Orange Ild"]
+        let count = min(aiCount, 3)
+        for i in 0..<count {
+            _ = engine.addAI(color: aiColors[i], lane: i + 1, difficulty: aiDifficulty)
+        }
+
+        var results = [CarRaceResult(id: 0, name: "Dig", color: carConfig.color)]
+        for i in 0..<count {
+            results.append(CarRaceResult(id: i + 1, name: aiNames[i], color: aiColors[i]))
+        }
+        gameState.carResults = results
 
         // Flyt bilerne fra dummy-scenen til AR-bane-noden.
         // Bilerne er børn af trackNode (som allerede er skaleret 0.05),

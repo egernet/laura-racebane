@@ -219,6 +219,13 @@ struct HostRaceView: View {
         let remoteCar = engine.addCar(color: .systemGreen, lane: 1)
         _ = remoteCar // styres via HostEngine
 
+        engine.playerCarIndex = 0
+        gameState.playerIndex = 0
+        gameState.carResults = [
+            CarRaceResult(id: 0, name: "Dig", color: .systemPink),
+            CarRaceResult(id: 1, name: "Modstander", color: .systemGreen),
+        ]
+
         // Opsæt HostEngine
         let host = HostEngine(session: session, gameEngine: engine)
         // Tildel remote peers til bil index 1

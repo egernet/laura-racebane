@@ -17,7 +17,7 @@ class TrackBuilder {
 
         // Byg sporstriber
         for lane in 0..<definition.laneCount {
-            let laneOffset = SCNFloat(lane) * SCNFloat(definition.laneWidth) - SCNFloat(definition.laneWidth) * 0.5
+            let laneOffset = SCNFloat(lane) * SCNFloat(definition.laneWidth) - SCNFloat(definition.laneWidth) * SCNFloat(definition.laneCount - 1) / 2.0
             let stripe = buildLaneStripe(from: path, offset: laneOffset)
             trackNode.addChildNode(stripe)
         }

@@ -8,6 +8,7 @@ class GameEngine: NSObject, SCNSceneRendererDelegate {
     let gameState: GameState
     var carControllers: [CarController] = []
     var aiControllers: [AIController] = []
+    var playerCarIndex: Int = 0
 
     private var lastUpdateTime: TimeInterval = 0
     private var countdownTimer: Float = 0
@@ -33,7 +34,8 @@ class GameEngine: NSObject, SCNSceneRendererDelegate {
             carNode: carNode,
             trackPath: raceScene.trackPath,
             lane: lane,
-            laneWidth: 0.4
+            laneWidth: 0.4,
+            laneCount: raceScene.trackDefinition.laneCount
         )
 
         carControllers.append(controller)
@@ -125,38 +127,29 @@ class GameEngine: NSObject, SCNSceneRendererDelegate {
     }
 
     private func handleLapComplete(carIndex: Int, controller: CarController) {
-        let isPlayer = carIndex == 0
         let lapTime = gameState.raceTime - (lapStartTimes[carIndex] ?? 0)
         lapStartTimes[carIndex] = gameState.raceTime
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            guard carIndex < self.gameState.carResults.count else { return }
 
-            if isPlayer {
-                self.gameState.playerLap = controller.lapCount
-                if lapTime < self.gameState.playerBestLap {
-                    self.gameState.playerBestLap = lapTime
-                }
-            } else {
-                self.gameState.aiLap = controller.lapCount
+            self.gameState.carResults[carIndex].lap = controller.lapCount
+
+            if lapTime < self.gameState.carResults[carIndex].bestLap {
+                self.gameState.carResults[carIndex].bestLap = lapTime
             }
 
-            // Tjek om nogen har gennemført racet
-            if controller.lapCount >= self.gameState.totalLaps {
-                if isPlayer && !self.gameState.playerFinished {
-                    self.gameState.playerFinished = true
-                    self.gameState.playerTotalTime = self.gameState.raceTime
-                } else if !isPlayer && !self.gameState.aiFinished {
-                    self.gameState.aiFinished = true
-                    self.gameState.aiTotalTime = self.gameState.raceTime
-                }
+            // Tjek om bilen har gennemført racet
+            if controller.lapCount >= self.gameState.totalLaps &&
+               !self.gameState.carResults[carIndex].finished {
+                self.gameState.carResults[carIndex].finished = true
+                self.gameState.carResults[carIndex].totalTime = self.gameState.raceTime
+            }
 
-                // Race slut når spilleren er i mål
-                if self.gameState.playerFinished {
-                    self.gameState.playerWon = !self.gameState.aiFinished ||
-                        self.gameState.playerTotalTime <= self.gameState.aiTotalTime
-                    self.gameState.phase = .finished
-                }
+            // Race slut når spilleren er i mål
+            if self.gameState.carResults[self.playerCarIndex].finished {
+                self.gameState.phase = .finished
             }
         }
     }

@@ -25,7 +25,9 @@ struct TrackCatalog {
             .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
             .straightLong,
             .curveLeft, .curveLeft, .curveLeft, .curveLeft,  // 180°
-        ]
+        ],
+        laneCount: 4,
+        trackWidth: 2.0
     )
 
     /// Otte-tal - to fulde cirkler der mødes ved krydspunktet
@@ -43,6 +45,8 @@ struct TrackCatalog {
             .curveRight, .curveRight, .curveRight, .curveRight,
             .curveRight, .curveRight, .curveRight, .curveRight,
         ],
+        laneCount: 4,
+        trackWidth: 2.0,
         bridgeCenterProgress: 0.5,
         bridgeRampLength: 2.5,
         bridgeHeight: 0.45
@@ -70,7 +74,9 @@ struct TrackCatalog {
             .straight, .straight,
             // Hjørne 4
             .curveLeft, .curveLeft,                          // 90°
-        ]
+        ],
+        laneCount: 4,
+        trackWidth: 2.0
     )
 
     /// Lauras Løkke - rektangel med brede og stramme sving
@@ -95,6 +101,8 @@ struct TrackCatalog {
             .straight, .straight,
             // Hjørne 4 (stramt)
             .curveLeft, .curveLeft,                      // 90°
-        ]
+        ],
+        laneCount: 4,
+        trackWidth: 2.0
     )
 }

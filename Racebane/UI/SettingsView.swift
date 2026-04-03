@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("soundEnabled") private var soundEnabled = true
     @AppStorage("difficulty") private var difficulty = 1 // 0=let, 1=normal, 2=svær
     @AppStorage("totalLaps") private var totalLaps = 3
+    @AppStorage("aiCount") private var aiCount = 1
     @AppStorage("selectedCarId") private var selectedCarId = 0
     @Environment(\.dismiss) var dismiss
 
@@ -63,6 +64,16 @@ struct SettingsView: View {
                                 Text("Let").tag(0)
                                 Text("Normal").tag(1)
                                 Text("Svær").tag(2)
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        // Antal modstandere
+                        settingSection("Antal modstandere") {
+                            Picker("Modstandere", selection: $aiCount) {
+                                Text("1").tag(1)
+                                Text("2").tag(2)
+                                Text("3").tag(3)
                             }
                             .pickerStyle(.segmented)
                         }

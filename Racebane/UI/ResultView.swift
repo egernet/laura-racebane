@@ -14,13 +14,64 @@ struct ResultView: View {
                 .foregroundColor(gameState.playerWon ? .yellow : .red)
                 .shadow(color: gameState.playerWon ? .yellow.opacity(0.5) : .red.opacity(0.5), radius: 10)
 
-            // Tider
-            VStack(spacing: 12) {
-                resultRow(label: "Din tid", time: gameState.playerTotalTime, highlight: true)
-                resultRow(label: "AI tid", time: gameState.aiFinished ? gameState.aiTotalTime : 0)
-                resultRow(label: "Bedste omgang", time: gameState.playerBestLap, highlight: true)
+            // Resultater for alle biler
+            VStack(spacing: 8) {
+                ForEach(Array(gameState.rankedResults.enumerated()), id: \.element.id) { position, result in
+                    let isPlayer = result.id == gameState.playerIndex
+                    HStack(spacing: 12) {
+                        // Position
+                        Text("\(position + 1).")
+                            .font(.system(size: 18, weight: .bold, design: .monospaced))
+                            .foregroundColor(positionColor(position))
+                            .frame(width: 30, alignment: .trailing)
+
+                        // Farve-cirkel
+                        Circle()
+                            .fill(Color(uiColor: result.color))
+                            .frame(width: 20, height: 20)
+
+                        // Navn
+                        Text(result.name)
+                            .font(.system(size: 16, weight: isPlayer ? .bold : .medium, design: .rounded))
+                            .foregroundColor(isPlayer ? .yellow : .white)
+
+                        Spacer()
+
+                        // Tid
+                        if result.finished {
+                            Text(formatTime(result.totalTime))
+                                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                .foregroundColor(isPlayer ? .yellow : .white)
+                        } else {
+                            Text("DNF")
+                                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.3))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(isPlayer ? Color.yellow.opacity(0.1) : Color.clear)
+                    )
+                }
+
+                // Spillerens bedste omgang
+                if gameState.playerBestLap < .infinity {
+                    HStack {
+                        Text("Bedste omgang")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                        Text(formatTime(gameState.playerBestLap))
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundColor(.yellow)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                }
             }
-            .padding(20)
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.black.opacity(0.5))
@@ -70,23 +121,12 @@ struct ResultView: View {
         )
     }
 
-    private func resultRow(label: String, time: Float, highlight: Bool = false) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
-
-            Spacer()
-
-            if time > 0 && time < .infinity {
-                Text(formatTime(time))
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    .foregroundColor(highlight ? .yellow : .white)
-            } else {
-                Text("--:--.--")
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.3))
-            }
+    private func positionColor(_ position: Int) -> Color {
+        switch position {
+        case 0: return .yellow
+        case 1: return .gray
+        case 2: return .orange
+        default: return .white.opacity(0.5)
         }
     }
 

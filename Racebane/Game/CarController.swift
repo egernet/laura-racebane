@@ -6,6 +6,7 @@ class CarController {
     let trackPath: TrackPath
     let lane: Int
     let laneWidth: Float
+    let laneCount: Int
     let flyOff: FlyOffController
 
     /// Progress langs banen (0.0 til 1.0 = en omgang)
@@ -34,11 +35,12 @@ class CarController {
     /// Aktuel kurvaturradius (til HUD)
     var currentCurvatureRadius: Float = .infinity
 
-    init(carNode: CarNode, trackPath: TrackPath, lane: Int = 0, laneWidth: Float = 0.4) {
+    init(carNode: CarNode, trackPath: TrackPath, lane: Int = 0, laneWidth: Float = 0.4, laneCount: Int = 2) {
         self.carNode = carNode
         self.trackPath = trackPath
         self.lane = lane
         self.laneWidth = laneWidth
+        self.laneCount = laneCount
         self.flyOff = FlyOffController()
 
         updateCarTransform()
@@ -122,7 +124,7 @@ class CarController {
 
     func updateCarTransform() {
         let point = trackPath.pointAt(progress: progress)
-        let laneOffset = SCNFloat(Float(lane) * laneWidth - laneWidth * 0.5)
+        let laneOffset = SCNFloat(Float(lane) * laneWidth - laneWidth * Float(laneCount - 1) / 2.0)
         let position = point.position + point.right * laneOffset
 
         carNode.position = SCNVector3(position.x, position.y, position.z)

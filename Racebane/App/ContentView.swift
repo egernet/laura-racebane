@@ -149,6 +149,7 @@ struct RaceContentView: View {
     @AppStorage("difficulty") private var difficulty = 1
     @AppStorage("totalLaps") private var totalLaps = 3
     @AppStorage("selectedCarId") private var selectedCarId = 0
+    @AppStorage("aiCount") private var aiCount = 1
 
     private func setupGame() {
         let scene = RaceScene(trackDefinition: trackDefinition)
@@ -159,10 +160,24 @@ struct RaceContentView: View {
         // Spillerens bil fra settings
         let carConfig = CarConfig.allCars.first(where: { $0.id == selectedCarId }) ?? CarConfig.allCars[0]
         let player = engine.addCar(color: carConfig.color, lane: 0)
+        engine.playerCarIndex = 0
+        state.playerIndex = 0
 
-        // AI-modstander
+        // AI-modstandere (1-3 stk)
         let aiDifficulty: Float = [0.55, 0.7, 0.85][min(difficulty, 2)]
-        _ = engine.addAI(color: .systemBlue, lane: 1, difficulty: aiDifficulty)
+        let aiColors: [UIColor] = [.systemBlue, .systemGreen, .systemOrange]
+        let aiNames = ["Blå Lyn", "Grøn Pil", "Orange Ild"]
+        let count = min(aiCount, 3)
+        for i in 0..<count {
+            _ = engine.addAI(color: aiColors[i], lane: i + 1, difficulty: aiDifficulty)
+        }
+
+        // Opsæt carResults
+        var results = [CarRaceResult(id: 0, name: "Dig", color: carConfig.color)]
+        for i in 0..<count {
+            results.append(CarRaceResult(id: i + 1, name: aiNames[i], color: aiColors[i]))
+        }
+        state.carResults = results
 
         engine.onUpdate = { [weak player] in
             if let p = player {
