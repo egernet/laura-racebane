@@ -8,6 +8,12 @@ class HostEngine {
     private var peerCarIndex: [String: Int] = [:]
     private var broadcastTimer: Timer?
 
+    /// Peers der er klar til restart
+    private var readyPeers: Set<String> = []
+
+    /// Callback når alle peers er klar til restart
+    var onAllReady: (() -> Void)?
+
     init(session: SessionManager, gameEngine: GameEngine) {
         self.session = session
         self.gameEngine = gameEngine
@@ -50,12 +56,28 @@ class HostEngine {
         broadcastTimer = nil
     }
 
+    /// Nulstil ready-state for ny runde
+    func resetReady() {
+        readyPeers.removeAll()
+    }
+
     private func handleMessage(_ message: GameMessage, from peer: MCPeerID) {
         if case .throttleInput(let input) = message {
             if let carIndex = peerCarIndex[input.playerId],
                carIndex < gameEngine.carControllers.count {
                 DispatchQueue.main.async {
                     self.gameEngine.carControllers[carIndex].isThrottlePressed = input.isPressed
+                }
+            }
+        }
+
+        if case .readyForRestart(let ready) = message {
+            readyPeers.insert(ready.playerId)
+            // Tjek om alle peers er klar
+            let allPeerIds = Set(peerCarIndex.keys)
+            if allPeerIds.isSubset(of: readyPeers) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.onAllReady?()
                 }
             }
         }

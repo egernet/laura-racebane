@@ -2,16 +2,12 @@ import SwiftUI
 
 /// Client-view: søger efter og joiner et multiplayer spil
 struct JoinView: View {
-    let isAR: Bool
     @StateObject private var session = SessionManager()
     @State private var startGame = false
     @State private var trackDefinition: TrackDefinition?
+    @State private var isAR = false
     @State private var selectedGame: SessionManager.DiscoveredGame?
     @Environment(\.dismiss) var dismiss
-
-    var filteredGames: [SessionManager.DiscoveredGame] {
-        session.discoveredGames.filter { $0.isAR == isAR }
-    }
 
     var body: some View {
         if startGame, let track = trackDefinition {
@@ -39,13 +35,13 @@ struct JoinView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 24) {
-                Text(isAR ? "Join AR Spil" : "Join Normalt Spil")
+                Text("Join spil")
                     .font(.system(size: 32, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .padding(.top, 60)
 
                 if !session.isConnected {
-                    if filteredGames.isEmpty {
+                    if session.discoveredGames.isEmpty {
                         VStack(spacing: 12) {
                             ProgressView()
                                 .tint(.white)
@@ -60,21 +56,25 @@ struct JoinView: View {
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.white.opacity(0.7))
 
-                            ForEach(filteredGames, id: \.peer.displayName) { game in
+                            ForEach(session.discoveredGames, id: \.peer.displayName) { game in
                                 Button {
                                     selectedGame = game
+                                    isAR = game.isAR
                                     session.joinHost(game.peer)
                                 } label: {
                                     HStack {
-                                        Image(systemName: isAR ? "arkit" : "antenna.radiowaves.left.and.right")
-                                            .foregroundColor(isAR ? .orange : .blue)
+                                        Image(systemName: game.isAR ? "arkit" : "antenna.radiowaves.left.and.right")
+                                            .foregroundColor(game.isAR ? .orange : .blue)
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(game.peer.displayName)
                                                 .foregroundColor(.white)
                                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                            Text(game.trackName)
-                                                .foregroundColor(.white.opacity(0.6))
-                                                .font(.system(size: 13, design: .rounded))
+                                            HStack(spacing: 4) {
+                                                Text(game.trackName)
+                                                Text(game.isAR ? "(AR)" : "(Normal)")
+                                            }
+                                            .foregroundColor(.white.opacity(0.6))
+                                            .font(.system(size: 13, design: .rounded))
                                         }
                                         Spacer()
                                         Text("Forbind")
@@ -120,6 +120,9 @@ struct JoinView: View {
                     if let name = lobby.trackName,
                        let track = TrackCatalog.track(named: name) {
                         trackDefinition = track
+                        if let game = selectedGame {
+                            isAR = game.isAR
+                        }
                         startGame = true
                     }
                 }

@@ -6,6 +6,7 @@ enum GameMessage: Codable {
     case stateUpdate(StateUpdate)
     case gameEvent(GameEvent)
     case lobbyUpdate(LobbyUpdate)
+    case readyForRestart(ReadyForRestart)
 
     // MARK: - Beskedtyper
 
@@ -61,5 +62,9 @@ enum GameMessage: Codable {
         let colorIndex: Int
         let isHost: Bool
         let isReady: Bool
+    }
+
+    struct ReadyForRestart: Codable {
+        let playerId: String
     }
 }

@@ -138,7 +138,7 @@ struct MultiplayerRaceView: View {
 
 // MARK: - Host Race View
 
-/// Host: kører GameEngine med 2 spillerbiler, broadcaster state
+/// Host: kører GameEngine med spillerbiler, broadcaster state
 struct HostRaceView: View {
     let trackDefinition: TrackDefinition
     let session: SessionManager
@@ -156,6 +156,8 @@ struct HostRaceView: View {
     @State private var isPenalty: Bool = false
     @State private var penaltyProgress: Float = 0
     @State private var showGoText: Bool = false
+    @State private var waitingForRestart = false
+    @State private var hostReady = false
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -188,10 +190,19 @@ struct HostRaceView: View {
                 }
             }
 
-            if gameState.isFinished {
-                ResultView(gameState: gameState,
-                           onPlayAgain: { dismiss() },
-                           onBackToMenu: { session.disconnect(); dismiss() })
+            if gameState.isFinished && !waitingForRestart {
+                multiplayerResultView
+            }
+
+            if waitingForRestart {
+                VStack(spacing: 16) {
+                    ProgressView().tint(.white)
+                    Text("Venter på andre spillere...")
+                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                .padding(30)
+                .background(RoundedRectangle(cornerRadius: 24).fill(Color.black.opacity(0.7)))
             }
         }
         .navigationBarHidden(true)
@@ -207,17 +218,63 @@ struct HostRaceView: View {
         }
     }
 
+    private var multiplayerResultView: some View {
+        VStack(spacing: 20) {
+            Text(gameState.playerWon ? "DU VANDT!" : "DU TABTE!")
+                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .foregroundColor(gameState.playerWon ? .yellow : .red)
+
+            HStack(spacing: 20) {
+                Button {
+                    // Host er klar — vent på clients
+                    hostReady = true
+                    waitingForRestart = true
+                    hostEngine?.resetReady()
+                    hostEngine?.onAllReady = {
+                        restartRace()
+                    }
+                    // Hvis ingen peers (solo test), restart direkte
+                    if session.connectedPeers.isEmpty {
+                        restartRace()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("Spil igen")
+                    }
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24).padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.green))
+                }
+
+                Button {
+                    session.disconnect()
+                    dismiss()
+                } label: {
+                    HStack {
+                        Image(systemName: "house")
+                        Text("Menu")
+                    }
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24).padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.2)))
+                }
+            }
+        }
+        .padding(30)
+        .background(RoundedRectangle(cornerRadius: 24).fill(Color.black.opacity(0.7)))
+    }
+
     private func setupHostGame() {
         let scene = RaceScene(trackDefinition: trackDefinition)
         let cam = CameraRig()
         let engine = GameEngine(raceScene: scene, cameraRig: cam, gameState: gameState)
 
-        // Host bil (pink, spor 0)
         let player = engine.addCar(color: .systemPink, lane: 0)
-
-        // Remote spiller bil (grøn, spor 1) - INGEN AI!
         let remoteCar = engine.addCar(color: .systemGreen, lane: 1)
-        _ = remoteCar // styres via HostEngine
+        _ = remoteCar
 
         engine.playerCarIndex = 0
         gameState.playerIndex = 0
@@ -226,9 +283,7 @@ struct HostRaceView: View {
             CarRaceResult(id: 1, name: "Modstander", color: .systemGreen),
         ]
 
-        // Opsæt HostEngine
         let host = HostEngine(session: session, gameEngine: engine)
-        // Tildel remote peers til bil index 1
         for peer in session.connectedPeers {
             host.assignPeer(peer.displayName, carIndex: 1)
         }
@@ -251,9 +306,28 @@ struct HostRaceView: View {
         self.gameEngine = engine
         self.hostEngine = host
 
-        // Start race + broadcasting
         engine.startRace(laps: 3)
         host.startBroadcasting()
+    }
+
+    private func restartRace() {
+        waitingForRestart = false
+        hostReady = false
+
+        if let engine = gameEngine {
+            for controller in engine.carControllers {
+                controller.progress = 0
+                controller.speed = 0
+                controller.lapCount = 0
+                controller.isThrottlePressed = false
+                controller.flyOff.state = .onTrack
+                controller.carNode.opacity = 1.0
+                controller.carNode.eulerAngles.x = 0
+                controller.carNode.eulerAngles.z = 0
+                controller.updateCarTransform()
+            }
+            engine.startRace(laps: 3)
+        }
     }
 }
 
@@ -269,6 +343,7 @@ struct ClientRaceView: View {
     @State private var cameraRig: CameraRig?
     @State private var scnView: SCNView?
     @State private var isThrottlePressed = false
+    @State private var waitingForRestart = false
     @Environment(\.dismiss) var dismiss
 
     init(trackDefinition: TrackDefinition, session: SessionManager) {
@@ -306,22 +381,60 @@ struct ClientRaceView: View {
                 }
             }
 
-            if clientEngine.phase == "finished" {
+            if clientEngine.phase == "finished" && !waitingForRestart {
                 VStack(spacing: 20) {
                     Text(clientEngine.winnerId == clientEngine.playerId ? "DU VANDT!" : "DU TABTE!")
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .foregroundColor(clientEngine.winnerId == clientEngine.playerId ? .yellow : .red)
-                    Button("Tilbage") { session.disconnect(); dismiss() }
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24).padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.2)))
+
+                    HStack(spacing: 20) {
+                        Button {
+                            // Send ready-besked til host
+                            let ready = GameMessage.ReadyForRestart(playerId: session.myId)
+                            session.sendToAll(.readyForRestart(ready), reliable: true)
+                            waitingForRestart = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.counterclockwise")
+                                Text("Spil igen")
+                            }
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24).padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.green))
+                        }
+
+                        Button {
+                            session.disconnect()
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: "house")
+                                Text("Menu")
+                            }
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24).padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.2)))
+                        }
+                    }
                 }
                 .padding(30)
                 .background(RoundedRectangle(cornerRadius: 24).fill(Color.black.opacity(0.7)))
             }
 
-            if !clientEngine.gameStarted {
+            if waitingForRestart {
+                VStack(spacing: 16) {
+                    ProgressView().tint(.white)
+                    Text("Venter på andre spillere...")
+                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                .padding(30)
+                .background(RoundedRectangle(cornerRadius: 24).fill(Color.black.opacity(0.7)))
+            }
+
+            if !clientEngine.gameStarted && !waitingForRestart {
                 VStack {
                     ProgressView().tint(.white)
                     Text("Venter på host...").foregroundColor(.white)
@@ -333,24 +446,26 @@ struct ClientRaceView: View {
         .onChange(of: isThrottlePressed) { newValue in
             clientEngine.sendThrottle(isPressed: newValue)
         }
+        .onChange(of: clientEngine.phase) { phase in
+            // Når host restarter (countdown igen), nulstil waiting state
+            if phase == "countdown" && waitingForRestart {
+                waitingForRestart = false
+            }
+        }
     }
 
     private func setupClientGame() {
         let scene = RaceScene(trackDefinition: trackDefinition)
         let cam = CameraRig()
 
-        // Opret bilnoder til visning
         let hostCar = CarNode(color: .systemPink)
         let clientCar = CarNode(color: .systemGreen)
         scene.scene.rootNode.addChildNode(hostCar)
         scene.scene.rootNode.addChildNode(clientCar)
 
-        // Registrer bilnoder i client engine
         clientEngine.trackPath = scene.trackPath
         clientEngine.carNodes["host"] = hostCar
-        // Peer display names bruges som ID for remote spillere
         for peer in session.connectedPeers {
-            // Host'en er den forbundne peer (vi er client)
             clientEngine.carNodes[peer.displayName] = hostCar
         }
         clientEngine.carNodes[session.myId] = clientCar

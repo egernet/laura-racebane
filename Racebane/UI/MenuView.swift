@@ -3,12 +3,9 @@ import SceneKit
 
 /// Hovedmenu med banevælger
 struct MenuView: View {
-    @State private var selectedTrack: TrackDefinition?
     @State private var showPieceCatalog = false
     @State private var showSettings = false
     @State private var arTrack: TrackDefinition?
-    @State private var showJoinNormal = false
-    @State private var showJoinAR = false
 
     var body: some View {
         NavigationStack {
@@ -55,50 +52,20 @@ struct MenuView: View {
                                     NavigationLink(value: track.name) {
                                         TrackCard(track: track)
                                     }
-                                    HStack(spacing: 8) {
-                                        NavigationLink(value: "mp:\(track.name)") {
+                                    if ARSupport.isSupported {
+                                        Button {
+                                            arTrack = track
+                                        } label: {
                                             HStack(spacing: 4) {
-                                                Image(systemName: "wifi")
+                                                Image(systemName: "arkit")
                                                     .font(.system(size: 11))
-                                                Text("Multi")
+                                                Text("AR")
                                                     .font(.system(size: 11, weight: .medium, design: .rounded))
                                             }
-                                            .foregroundColor(.cyan)
+                                            .foregroundColor(.orange)
                                             .padding(.horizontal, 10)
                                             .padding(.vertical, 6)
-                                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.15)))
-                                        }
-
-                                        if ARSupport.isSupported {
-                                            Button {
-                                                arTrack = track
-                                            } label: {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "arkit")
-                                                        .font(.system(size: 11))
-                                                    Text("AR")
-                                                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                                                }
-                                                .foregroundColor(.orange)
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 6)
-                                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
-                                            }
-
-                                            NavigationLink(value: "ar-mp:\(track.name)") {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "arkit")
-                                                        .font(.system(size: 11))
-                                                    Image(systemName: "wifi")
-                                                        .font(.system(size: 9))
-                                                    Text("AR+MP")
-                                                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                                                }
-                                                .foregroundColor(.purple)
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 6)
-                                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.purple.opacity(0.15)))
-                                            }
+                                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.15)))
                                         }
                                     }
                                 }
@@ -108,24 +75,32 @@ struct MenuView: View {
                     }
 
                     // Knapper i bunden
-                    VStack(spacing: 12) {
-                        HStack(spacing: 16) {
-                            menuButton(icon: "puzzlepiece.extension", text: "Banestykker") {
-                                showPieceCatalog = true
+                    HStack(spacing: 16) {
+                        NavigationLink(value: "mp-menu") {
+                            HStack(spacing: 6) {
+                                Image(systemName: "wifi")
+                                    .font(.system(size: 14))
+                                Text("Multiplayer")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                             }
-                            menuButton(icon: "gearshape", text: "Indstillinger") {
-                                showSettings = true
-                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.cyan.opacity(0.3))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+                                    )
+                            )
                         }
-                        HStack(spacing: 16) {
-                            menuButton(icon: "wifi", text: "Join Normal") {
-                                showJoinNormal = true
-                            }
-                            if ARSupport.isSupported {
-                                menuButton(icon: "arkit", text: "Join AR") {
-                                    showJoinAR = true
-                                }
-                            }
+
+                        menuButton(icon: "puzzlepiece.extension", text: "Banestykker") {
+                            showPieceCatalog = true
+                        }
+                        menuButton(icon: "gearshape", text: "Indstillinger") {
+                            showSettings = true
                         }
                     }
                     .padding(.bottom, 30)
@@ -137,12 +112,6 @@ struct MenuView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
-            .sheet(isPresented: $showJoinNormal) {
-                JoinView(isAR: false)
-            }
-            .fullScreenCover(isPresented: $showJoinAR) {
-                JoinView(isAR: true)
-            }
             .fullScreenCover(item: $arTrack) { track in
                 ARRaceContentView(trackDefinition: track)
             }
@@ -152,18 +121,19 @@ struct MenuView: View {
             .onDisappear {
                 SoundManager.shared.stopMusic()
             }
-            .navigationDestination(for: String.self) { trackName in
-                if trackName.hasPrefix("ar-mp:") {
-                    let name = String(trackName.dropFirst(6))
-                    if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
-                        ARMultiplayerHostEntry(trackDefinition: track)
+            .navigationDestination(for: String.self) { value in
+                if value == "mp-menu" {
+                    MultiplayerMenuView()
+                } else if value == "mp-host-setup" {
+                    HostSetupView()
+                } else if value.hasPrefix("mp-lobby:") {
+                    let parts = value.dropFirst(9).split(separator: ":")
+                    if parts.count == 2,
+                       let track = TrackCatalog.track(named: String(parts[0])) {
+                        let isAR = parts[1] == "ar"
+                        LobbyView(trackDefinition: track, isAR: isAR)
                     }
-                } else if trackName.hasPrefix("mp:") {
-                    let name = String(trackName.dropFirst(3))
-                    if let track = TrackCatalog.allTracks.first(where: { $0.name == name }) {
-                        LobbyView(trackDefinition: track)
-                    }
-                } else if let track = TrackCatalog.allTracks.first(where: { $0.name == trackName }) {
+                } else if let track = TrackCatalog.allTracks.first(where: { $0.name == value }) {
                     RaceContentView(trackDefinition: track)
                 }
             }
