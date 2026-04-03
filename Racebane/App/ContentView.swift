@@ -54,8 +54,28 @@ struct RaceContentView: View {
                 CountdownView(number: nil, isRacing: true)
             }
 
-            // Kontroller (kun under racing)
+            // Luk-knap (synlig under racing, øverst til venstre i safe area)
             if gameState.isRacing {
+                VStack {
+                    HStack {
+                        Button {
+                            SoundManager.shared.stopEngine()
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 26))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.leading, 16)
+                        Spacer()
+                    }
+                    .padding(.top, 8)
+                    Spacer()
+                }
+            }
+
+            // Kontroller (altid synlige undtagen på resultatskærm)
+            if !gameState.isFinished {
                 VStack {
                     Spacer()
                     HStack(alignment: .bottom) {
