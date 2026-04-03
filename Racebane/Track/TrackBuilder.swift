@@ -282,7 +282,7 @@ class TrackBuilder {
 
         // Roter til at pege på tværs af banen
         let angle = atan2(first.tangent.z, first.tangent.x)
-        node.eulerAngles.y = -Float(angle)
+        node.eulerAngles.y = -Float(angle) + .pi / 2
 
         return node
     }

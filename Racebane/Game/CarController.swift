@@ -120,7 +120,7 @@ class CarController {
         }
     }
 
-    private func updateCarTransform() {
+    func updateCarTransform() {
         let point = trackPath.pointAt(progress: progress)
         let laneOffset = SCNFloat(Float(lane) * laneWidth - laneWidth * 0.5)
         let position = point.position + point.right * laneOffset

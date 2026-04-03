@@ -3,6 +3,7 @@ import SwiftUI
 /// Indstillinger
 struct SettingsView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("soundEnabled") private var soundEnabled = true
     @AppStorage("difficulty") private var difficulty = 1 // 0=let, 1=normal, 2=svær
     @AppStorage("totalLaps") private var totalLaps = 3
     @AppStorage("selectedCarId") private var selectedCarId = 0
@@ -77,6 +78,13 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                         }
 
+                        // Lyd
+                        settingSection("Lyd") {
+                            Toggle("Lydeffekter", isOn: $soundEnabled)
+                                .tint(.green)
+                                .foregroundColor(.white)
+                        }
+
                         // Haptic
                         settingSection("Vibration") {
                             Toggle("Haptic feedback", isOn: $hapticEnabled)
@@ -98,6 +106,9 @@ struct SettingsView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onChange(of: hapticEnabled) { newValue in
                 HapticManager.shared.isEnabled = newValue
+            }
+            .onChange(of: soundEnabled) { newValue in
+                SoundManager.shared.isEnabled = newValue
             }
         }
     }

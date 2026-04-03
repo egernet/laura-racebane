@@ -109,6 +109,8 @@ struct RaceContentView: View {
             if isRacing {
                 showGoText = true
                 HapticManager.shared.go()
+                SoundManager.shared.go()
+                SoundManager.shared.startEngine()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     showGoText = false
                 }
@@ -116,15 +118,30 @@ struct RaceContentView: View {
         }
         .onChange(of: gameState.countdownNumber) { _ in
             HapticManager.shared.countdownTick()
+            SoundManager.shared.countdownTick()
         }
         .onChange(of: gameState.playerLap) { _ in
             HapticManager.shared.lapComplete()
+            SoundManager.shared.lapComplete()
         }
         .onChange(of: isPenalty) { penalty in
-            if penalty { HapticManager.shared.flyOff() }
+            if penalty {
+                HapticManager.shared.flyOff()
+                SoundManager.shared.flyOff()
+                SoundManager.shared.stopEngine()
+            } else if gameState.isRacing {
+                SoundManager.shared.startEngine()
+            }
         }
         .onChange(of: gameState.isFinished) { finished in
-            if finished { HapticManager.shared.raceFinished(won: gameState.playerWon) }
+            if finished {
+                HapticManager.shared.raceFinished(won: gameState.playerWon)
+                SoundManager.shared.raceFinished(won: gameState.playerWon)
+                SoundManager.shared.stopEngine()
+            }
+        }
+        .onDisappear {
+            SoundManager.shared.stopEngine()
         }
     }
 
@@ -153,6 +170,7 @@ struct RaceContentView: View {
                 dangerLevel = p.dangerLevel
                 isPenalty = p.flyOff.state == .penalty
                 penaltyProgress = p.flyOff.penaltyProgress
+                SoundManager.shared.updateEngineSpeed(p.speed / 24.0)
             }
         }
 
@@ -167,6 +185,7 @@ struct RaceContentView: View {
     }
 
     private func restartRace() {
+        SoundManager.shared.stopEngine()
         isThrottlePressed = false
         speed = 0
         lapCount = 0
@@ -184,8 +203,9 @@ struct RaceContentView: View {
                 controller.carNode.opacity = 1.0
                 controller.carNode.eulerAngles.x = 0
                 controller.carNode.eulerAngles.z = 0
+                controller.updateCarTransform()
             }
-            engine.startRace(laps: 3)
+            engine.startRace(laps: totalLaps)
         }
     }
 }

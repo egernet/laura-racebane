@@ -121,13 +121,33 @@ struct ARRaceContentView: View {
             if isRacing {
                 showGoText = true
                 HapticManager.shared.go()
+                SoundManager.shared.go()
+                SoundManager.shared.startEngine()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { showGoText = false }
             }
         }
-        .onChange(of: gameState.countdownNumber) { _ in HapticManager.shared.countdownTick() }
-        .onChange(of: isPenalty) { p in if p { HapticManager.shared.flyOff() } }
+        .onChange(of: gameState.countdownNumber) { _ in
+            HapticManager.shared.countdownTick()
+            SoundManager.shared.countdownTick()
+        }
+        .onChange(of: isPenalty) { p in
+            if p {
+                HapticManager.shared.flyOff()
+                SoundManager.shared.flyOff()
+                SoundManager.shared.stopEngine()
+            } else if gameState.isRacing {
+                SoundManager.shared.startEngine()
+            }
+        }
         .onChange(of: gameState.isFinished) { f in
-            if f { HapticManager.shared.raceFinished(won: gameState.playerWon) }
+            if f {
+                HapticManager.shared.raceFinished(won: gameState.playerWon)
+                SoundManager.shared.raceFinished(won: gameState.playerWon)
+                SoundManager.shared.stopEngine()
+            }
+        }
+        .onDisappear {
+            SoundManager.shared.stopEngine()
         }
     }
 
@@ -159,6 +179,7 @@ struct ARRaceContentView: View {
                 dangerLevel = p.dangerLevel
                 isPenalty = p.flyOff.state == .penalty
                 penaltyProgress = p.flyOff.penaltyProgress
+                SoundManager.shared.updateEngineSpeed(p.speed / 24.0)
             }
         }
 
