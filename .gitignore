@@ -9,5 +9,8 @@ Racebane.xcodeproj/
 build/
 DerivedData/
 
+# App Store screenshots (locally captured, not source)
+screenshots/
+
 # OS files
 .DS_Store
