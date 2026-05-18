@@ -321,7 +321,7 @@ Klik gennem App Store Connect → din app i denne rækkefølge:
 Kør i Simulator + på fysisk iPad/iPhone inden archive:
 
 ### Simulator (iPad Pro 13" + iPhone 15 Pro Max)
-- [ ] Spillet starter i landscape (på iPhone) og virker i begge orienteringer (iPad)
+- [ ] Spillet starter i landscape og kan ikke rotere til portrait (låst på alle devices)
 - [ ] Menu vises og banevælger viser alle 4 baner
 - [ ] Race på alle 4 baner virker uden crash
 - [ ] Gas-knappen reagerer øjeblikkeligt
@@ -347,8 +347,7 @@ Kør i Simulator + på fysisk iPad/iPhone inden archive:
 
 ### Build-konfiguration
 - [ ] `project.yml`: `TARGETED_DEVICE_FAMILY: "1,2"` (universal)
-- [ ] `project.yml`: landscape + portrait på iPad, landscape-only på iPhone
-      (overvej at låse iPhone til landscape — race-spil)
+- [ ] `project.yml`: landscape-only på både iPhone og iPad
 - [ ] `INFOPLIST_KEY_NSCameraUsageDescription` sat (AR-mode)
 - [ ] `NSLocalNetworkUsageDescription` sat (multiplayer)
 - [ ] `NSBonjourServices: [_racebane._tcp]` sat
